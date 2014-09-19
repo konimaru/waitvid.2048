@@ -1,13 +1,13 @@
-﻿''
+''
 '' VGA display 80x25 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
 '' Last modified: 2014/09/19
-''       Version: 0.11
+''       Version: 0.12
 ''
 '' long[par][0]: vgrp:mode:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer   (4n)
 '' long[par][1]:                [!Z]:addr =      16:16 -> zero (accepted) font descriptor (2n)
-'' long[par][2]:      addr:[!Z]:addr:[!Z] =  14:2:14:2 -> zero (accepted) cursor location (?n) unused
+'' long[par][2]:      addr:[!Z]:addr:[!Z] =  14:2:14:2 -> zero (accepted) cursor location (4n)
 '' long[par][3]: frame indicator/sync lock
 ''
 '' - character entries are words, i.e. ASCII << 8 | attribute
@@ -74,6 +74,11 @@ driver          jmpret  $, #setup               '  -4   once
                 long    $02DEDE02, $82DEDE82, $22DEDE22, $92DEDE92, $0ADEDE0A, $8ADEDE8A, $2ADEDE2A, $AADEDEAA
                 long    $027E7E02, $827E7E82, $227E7E22, $927E7E92, $0A7E7E0A, $8A7E7E8A, $2A7E7E2A, $AA7E7EAA
                 long    $02FEFE02, $82FEFE82, $22FEFE22, $92FEFE92, $0AFEFE0A, $8AFEFE8A, $2AFEFE2A, $AAFEFEAA
+
+' The following two masks are placed here to make sure cmsk is at 2n.
+
+cmsk            long    %%3330_3330             ' xor mask for block cursor
+pmsk            long    %%0000_3333             ' xor mask for underscore cursor (updated for primary)
 
 ' horizontal timing 720(720)  1(18) 6(108) 3(54)
 '   vertical timing 400(400) 13(13) 2(2)  34(34)
@@ -259,7 +264,43 @@ load            muxnc   flag, $                 ' preserve carry flag
            
         if_nc   djnz    addr, #:loop            '  -4   {p.3.5} for all characters
 
+                mov     vier, oink
+                call    #cursor
+
+                mov     vier, meow
+                call    #cursor
+{
+                mov     vier, crs0
+                call    #cursor
+
+                cmp     crs0, crs1 wz
+        if_ne   mov     vier, crs1
+        if_ne   call    #cursor
+}               
 load_ret        jmpret  flag, #0-0 nr,wc        ' restore carry flag
+
+oink            long    (10-25) << 17 | (col+20) << 8 | %001
+meow            long    (10-25) << 17 | (pix+20) << 8 | %011
+
+cursor          test    vier, #%100 wz          ' cursor enabled?
+
+                mov     temp, vier              ' local copy
+                sar     temp, #1+16             ' extract y - 25
+        if_z    add     temp, rows wz           ' rows = {25..1}
+        if_nz   jmp     cursor_ret              ' wrong row/disabled
+
+                test    vier, #%010 wz,wc       ' underscore/block
+        if_nz   cmp     scnt, #1 wz
+        if_nz   jmp     cursor_ret
+
+                muxc    :set, #1
+        
+                ror     vier, #8 wc             ' carry: blink on/off
+                movd    :set, vier
+        if_c    cmp     fcnt, #18 wc
+:set    if_nc   xor     0-0, cmsk{2n}           ' cmsk: block      
+                                                ' pmsk: underscore
+cursor_ret      ret
 
 ' initialised data and/or presets
 
@@ -360,6 +401,7 @@ setup           add     trap, par wc            ' carry set -> secondary
 
                 max     dira, mask              ' drive outputs
                 mov     $000, pal0              ' restore colour entry 0
+        if_nc   shl     pmsk, #8                ' adjust underscore cursor (bytes swapped)
                 jmp     #vsync                  ' return
 
 ' Local data, used only once.
@@ -391,6 +433,7 @@ crs1            res     1                       ' cursor 1 location and mode
 
 eins            res     1
 zwei            res     1                       '                       < setup < 26    (%%)
+vier            res     1
 
 col2            res     alias
 col0            res     1
