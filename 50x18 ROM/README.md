@@ -1,5 +1,5 @@
 VGA display 50x18 (800x600)
 -----------------
- - single cog
+ - single cog (WHOP)
  - ROM font
  - full colour mode
