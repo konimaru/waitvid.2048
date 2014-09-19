@@ -1,4 +1,4 @@
-VGA display 40x15
+VGA display 40x15 (640x480)
 -----------------
  - single cog
  - ROM font
