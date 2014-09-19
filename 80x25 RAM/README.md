@@ -1,4 +1,4 @@
-VGA display 80x25
+VGA display 80x25 (720x400)
 -----------------
  - dual cog
  - RAM font (8x16)
