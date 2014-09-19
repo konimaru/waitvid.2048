@@ -1,4 +1,6 @@
+﻿───────────────────────────────────────
 Parallax Semiconductor Propeller Chip Project Archive
+───────────────────────────────────────
 
  Project :  "waitvid.40x15.plte.demo"
 
@@ -18,6 +20,7 @@ Archived :  Saturday, March 1, 2014 at 10:12:49 PM
                         └──core.con.system.spin
 
 
+────────────────────
 Parallax Inc., dba Parallax Semiconductor
 www.parallaxsemiconductor.com
 support@parallaxsemiconductor.com
