@@ -267,8 +267,9 @@ load            muxnc   flag, $                 ' preserve carry flag
                 mov     vier, oink
                 call    #cursor
 
-                mov     vier, meow
-                call    #cursor
+                cmp     oink, meow wz
+        if_ne   mov     vier, meow
+        if_ne   call    #cursor
 {
                 mov     vier, crs0
                 call    #cursor
@@ -291,9 +292,9 @@ cursor          test    vier, #%100 wz          ' cursor enabled?
 
                 test    vier, #%010 wz,wc       ' underscore/block
         if_nz   cmp     scnt, #1 wz
-        if_nz   jmp     cursor_ret
+        if_nz   jmp     cursor_ret              ' wrong scanline pair
 
-                muxc    :set, #1
+                muxc    :set, #1                ' adjust source
         
                 ror     vier, #8 wc             ' carry: blink on/off
                 movd    :set, vier
