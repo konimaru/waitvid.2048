@@ -2,16 +2,22 @@
 '' VGA display 80x25 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2014/09/19
-''       Version: 0.12
+'' Last modified: 2014/09/20
+''       Version: 0.13
 ''
 '' long[par][0]: vgrp:mode:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer   (4n)
 '' long[par][1]:                [!Z]:addr =      16:16 -> zero (accepted) font descriptor (2n)
-'' long[par][2]:      addr:[!Z]:addr:[!Z] =  14:2:14:2 -> zero (accepted) cursor location (4n)
+'' long[par][2]:                addr:addr =      16:16 -> zero (accepted) cursor location (4n)
 '' long[par][3]: frame indicator/sync lock
 ''
 '' - character entries are words, i.e. ASCII << 8 | attribute
 '' - top left corner is at highest screen memory address
+''
+'' - cursor location:   $00000000: both cursors off
+''                      $BBBBAAAA: AAAA == BBBB, one cursor
+''                      $DDDDCCCC: CCCC <> DDDD, two cursors
+''
+'' - cursor format:     %00000000_yyyyyyyy_xxxxxxxx_00000_mmm (see below for mode flags)
 ''
 '' acknowledgements
 '' - loader code based on work done by Phil Pilgrim (PhiPi)
@@ -22,7 +28,16 @@
 '' 20140916: enabled blink mode (0/1)
 '' 20140918: blink mode is now an init time parameter
 '' 20140919: cursor, WIP
+'' 20140920: cursor implementation complete
 ''
+CON
+  CURSOR_ON    = %100
+  CURSOR_OFF   = %000
+  CURSOR_ULINE = %010
+  CURSOR_BLOCK = %000
+  CURSOR_FLASH = %001
+  CURSOR_SOLID = $000
+  
 OBJ
   system: "core.con.system"
 
@@ -109,7 +124,14 @@ vsync           mov     ecnt, #13+2+(34-2)
         if_ne   rol     locn, #16
                 mov     crs1, #0                ' default is disabled
         if_ne   rdlong  crs1, locn              ' override
-                
+
+                mov     vier, crs0              ' |
+                call    #prep                   ' process cursor 0
+                mov     crs0, vier              ' |
+
+                mov     vier, crs1              ' |
+                call    #prep                   ' process cursor 1
+                mov     crs1, vier              ' |
 
         if_nc   call    #blank                  ' |                                       
         if_nc   call    #blank                  ' back porch remainder (primary only)     
@@ -264,24 +286,15 @@ load            muxnc   flag, $                 ' preserve carry flag
            
         if_nc   djnz    addr, #:loop            '  -4   {p.3.5} for all characters
 
-                mov     vier, oink
-                call    #cursor
-
-                cmp     oink, meow wz
-        if_ne   mov     vier, meow
-        if_ne   call    #cursor
-{
                 mov     vier, crs0
                 call    #cursor
 
                 cmp     crs0, crs1 wz
         if_ne   mov     vier, crs1
         if_ne   call    #cursor
-}               
+                
 load_ret        jmpret  flag, #0-0 nr,wc        ' restore carry flag
 
-oink            long    (10-25) << 17 | (col+20) << 8 | %001
-meow            long    (10-25) << 17 | (pix+20) << 8 | %011
 
 cursor          test    vier, #%100 wz          ' cursor enabled?
 
@@ -290,7 +303,7 @@ cursor          test    vier, #%100 wz          ' cursor enabled?
         if_z    add     temp, rows wz           ' rows = {25..1}
         if_nz   jmp     cursor_ret              ' wrong row/disabled
 
-                test    vier, #%010 wz,wc       ' underscore/block
+                test    vier, #%010 wz,wc       ' underscore(1)/block(0)
         if_nz   cmp     scnt, #1 wz
         if_nz   jmp     cursor_ret              ' wrong scanline pair
 
@@ -303,8 +316,31 @@ cursor          test    vier, #%100 wz          ' cursor enabled?
                                                 ' pmsk: underscore
 cursor_ret      ret
 
+
+prep            mov     temp, vier              ' working copy
+                shr     temp, #16               ' |
+                and     temp, #255              ' extract y
+                sub     temp, #25               '   y - 25
+                shl     temp, #1+16             ' 2(y - 25)
+                
+                and     vier, xmsk              ' get rid of y
+                max     vier, xlim              ' limit x to park position (auto off)
+                xor     vier, #%100             ' invert on/off
+                or      vier, temp              ' reinsert y
+
+                test    vier, #%010 wz          ' underscore(1)/block(0)
+                ror     vier, #8                ' align x for add
+        if_nz   add     vier, #pix
+        if_z    add     vier, #col
+                rol     vier, #8                ' restore cursor descriptor
+        
+prep_ret        ret
+
 ' initialised data and/or presets
 
+xmsk            long    $0000FF07               ' covers mode/x
+xlim            long    80 << 8                 ' park position
+    
 rcnt            long    8                       ' palette bit rotation count (16/8/0)
 fcnt            long    0                       ' blink frame count
 bt24            long    |< 24                   ' blink indicator
@@ -353,8 +389,8 @@ setup           add     trap, par wc            ' carry set -> secondary
                 rdlong  font, font_             ' get font definition (2n)              (%%)
                 wrlong  zero, font_             ' acknowledge font definition setup
 
-                rdlong  locn, locn_             ' get cursor location                   (%%)
-                wrlong  zero, locn_             ' acknowledge cursor location
+                rdlong  locn, locn_ wz          ' get cursor location                   (%%)
+        if_nz   wrlong  zero, locn_             ' acknowledge cursor location
 
 ' Perform pending setup.
 
@@ -441,8 +477,8 @@ col0            res     1
 col3            res     alias
 col1            res     1
 
-pix             res     80                      ' emitter pixel array
-col             res     80                      ' emitter colour data
+pix             res     80 +1                   ' emitter pixel array |
+col             res     80 +1                   ' emitter colour data | + park position
 
 tail            fit
                 

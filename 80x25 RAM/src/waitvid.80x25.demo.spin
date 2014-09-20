@@ -2,8 +2,8 @@
 '' VGA display 80x25 (dual cog) - demo
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2014/09/18
-''       Version: 0.6
+'' Last modified: 2014/09/20
+''       Version: 0.7
 ''
 CON
   _clkmode = XTAL1|PLL16X
@@ -22,7 +22,17 @@ CON
   mode     = 1                                          ' 0: FG on/off, 1: FG :==: BG
 
   video    = (vgrp << 9 | mode << 8 | %%333_0) << 21
-  
+
+CON
+  CURSOR_ON    = driver#CURSOR_ON
+  CURSOR_OFF   = driver#CURSOR_OFF
+  CURSOR_ULINE = driver#CURSOR_ULINE
+  CURSOR_BLOCK = driver#CURSOR_BLOCK
+  CURSOR_FLASH = driver#CURSOR_FLASH
+  CURSOR_SOLID = driver#CURSOR_SOLID
+
+  #0, CM, CX, CY
+
 OBJ
   driver: "waitvid.80x25.driver.2048"
     font: "halfrange8x16-2font"
@@ -30,26 +40,34 @@ OBJ
 VAR
   long  scrn[bcnt_raw / 2]                              ' screen buffer
   long  link[driver#res_m]                              ' mailbox
+
+  long  crs0, crs1                                      ' text cursors
   
 PUB selftest : n | c
 
   link{0} := video | @scrn{0}
   link[1] := font#height << 24 | font.addr
-  link[2] := 0
+  link[2] := @crs0 << 16 | @crs1
+
+  crs0.byte{CM} := CURSOR_ON|CURSOR_ULINE|CURSOR_FLASH
+  crs0.byte[CX] := 21
+  crs0.byte[CY] := 10
+
+  crs1.byte{CM} := CURSOR_ON|CURSOR_BLOCK|CURSOR_SOLID
+  crs1.byte[CX] := 20
+  crs1.byte[CY] := 10
   
   driver.init(-1, @link{0})                             ' start driver
 
   repeat bcnt                                           ' fill screen
-    c := frqa++ & 255
-    c := c << 1 | ||(c > 127)
 '
 '   colour format: %FFFF_BBB_A
 '
 '     FFFF: foreground index
 '      BBB: background index
 '        A: blink mode (0/1 = off/on)
-
-    scrn.word[bcnt - ++n] := ((n & $7F) << 8 | c.byte{0})
+'
+    scrn.word[bcnt - ++n] := ((n & $7F) << 8 | %1110_100_0)
 
 PRI redef(c, cdef) : s
 
@@ -74,6 +92,6 @@ PRI printCharAt(x, y, attr, c)
 
 PRI clearScreen(attr)
 
-  wordfill(@scrn{0}, $2000 | attr, bcnt)
+  wordfill(@scrn{0}, $2000 | attr, bcnt_raw)
   
 DAT
