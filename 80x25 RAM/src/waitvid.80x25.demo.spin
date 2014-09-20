@@ -3,7 +3,7 @@
 ''
 ''        Author: Marko Lukat
 '' Last modified: 2014/09/20
-''       Version: 0.7
+''       Version: 0.8
 ''
 CON
   _clkmode = XTAL1|PLL16X
@@ -41,23 +41,24 @@ VAR
   long  scrn[bcnt_raw / 2]                              ' screen buffer
   long  link[driver#res_m]                              ' mailbox
 
-  long  crs0, crs1                                      ' text cursors
+  long  cursor                                          ' text cursor
   
-PUB selftest : n | c
+PUB selftest : n | c, x, y
 
   link{0} := video | @scrn{0}
   link[1] := font#height << 24 | font.addr
-  link[2] := @crs0 << 16 | @crs1
+  link[2] := @cursor * $00010001
 
-  crs0.byte{CM} := CURSOR_ON|CURSOR_ULINE|CURSOR_FLASH
-  crs0.byte[CX] := 21
-  crs0.byte[CY] := 10
-
-  crs1.byte{CM} := CURSOR_ON|CURSOR_BLOCK|CURSOR_SOLID
-  crs1.byte[CX] := 20
-  crs1.byte[CY] := 10
-  
   driver.init(-1, @link{0})                             ' start driver
+
+  waitcnt(clkfreq*2 + cnt)
+
+  clearScreen(%1110_100_0)                              ' cursor home
+  setCursor(CURSOR_ON|CURSOR_ULINE|CURSOR_FLASH)
+
+  printText(%1110_100_1, string("The quick brown fox jumps over the lazy dog!"))
+
+  waitcnt(clkfreq*2 + cnt)
 
   repeat bcnt                                           ' fill screen
 '
@@ -67,7 +68,15 @@ PUB selftest : n | c
 '      BBB: background index
 '        A: blink mode (0/1 = off/on)
 '
-    scrn.word[bcnt - ++n] := ((n & $7F) << 8 | %1110_100_0)
+    printChar(%1110_100_0, n++)
+    waitcnt(clkfreq/140 + cnt)
+
+  setCursor(CURSOR_ON|CURSOR_BLOCK|CURSOR_SOLID)        ' mouse like cursor
+
+  repeat
+    cursor.byte[CX] := ||(?frqa // columns)
+    cursor.byte[CY] := ||(frqb? // rows)
+    waitcnt(clkfreq/2 + cnt)
 
 PRI redef(c, cdef) : s
 
@@ -75,6 +84,9 @@ PRI redef(c, cdef) : s
     word[font.addr][64 * s + c] := byte[cdef][s] << 8 | byte[cdef][s+1]
     
 PRI printTextAt(x, y, attr, s)
+
+  x //= columns                                         ' |
+  y //= rows                                            ' optional
 
   repeat strsize(s)
     printCharAt(x++, y, attr, byte[s++])
@@ -90,8 +102,33 @@ PRI printCharAt(x, y, attr, c)
   attr.byte[1] := c
   scrn.word[bcnt_raw - y * columns - ++x] := attr 
 
+PRI printText(attr, s)
+
+  repeat strsize(s)
+    printChar(attr, byte[s++])
+      
+PRI printChar(attr, c) | x, y
+
+  c &= 127                                              ' optional
+
+  x := cursor.byte[CX]
+  y := cursor.byte[CY]
+  
+  attr.byte[1] := c
+  scrn.word[bcnt_raw - y * columns - ++x] := attr
+  ifnot x //= columns                                   ' wrap right
+    y := ++y // rows                                    ' wrap bottom (page mode)
+
+  cursor.byte[CX] := x
+  cursor.byte[CY] := y
+  
 PRI clearScreen(attr)
 
   wordfill(@scrn{0}, $2000 | attr, bcnt_raw)
+  cursor.byte[CX] := cursor.byte[CY] := 0
+  
+PRI setCursor(setup)
+
+  cursor.byte{CM} := (cursor.byte{CM} & !(CURSOR_ON|CURSOR_ULINE|CURSOR_FLASH)) | setup
   
 DAT
