@@ -2,8 +2,8 @@
 '' VGA display 50xN (single cog) - user interface
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2012/09/09
-''       Version: 0.6
+'' Last modified: 2014/09/21
+''       Version: 0.7
 ''
 '' acknowledgements
 '' - conversion and output methods are based on FullDuplexSerial code (except dec)
@@ -12,6 +12,7 @@
 '' 20120106: sync'd with 50xH.ui
 '' 20120225: sync'd with 50xH.ui, added dec method
 '' 20120909: colour clean-up now done at driver level
+'' 20140921: adjusted font name to new format
 ''
 CON
   columns  = driver#res_x / 8
