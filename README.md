@@ -1,5 +1,5 @@
 waitvid.2048
 ============
-A collection of P8X32A video drivers
+A collection of <a href="http://parallax.com">P8X32A</a> video drivers
 
 Primary design goals are minimal core usage and/or full colour mode.
