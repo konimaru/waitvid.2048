@@ -1,4 +1,4 @@
-VGA scanline 256x192 (1024x768)
+VGA scanline 400x300 (800x600)
 --------------------
  - single cog (WHOP)
  - dual scanline
