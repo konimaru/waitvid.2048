@@ -1,5 +1,5 @@
 VGA scanline 320x240 (640x480)
 --------------------
  - single cog
- - dual scanline (2+ input buffers)
+ - dual scanline,  at least two input buffers
  - full colour mode
