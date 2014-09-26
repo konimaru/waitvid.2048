@@ -2,8 +2,8 @@
 '' VGA display 80x25 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2014/09/20
-''       Version: 0.13
+'' Last modified: 2014/09/26
+''       Version: 0.14
 ''
 '' long[par][0]: vgrp:mode:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer   (4n)
 '' long[par][1]:                [!Z]:addr =      16:16 -> zero (accepted) font descriptor (2n)
@@ -29,6 +29,7 @@
 '' 20140918: blink mode is now an init time parameter
 '' 20140919: cursor, WIP
 '' 20140920: cursor implementation complete
+'' 20140926: added cursor mask constant
 ''
 CON
   CURSOR_ON    = %100
@@ -36,7 +37,9 @@ CON
   CURSOR_ULINE = %010
   CURSOR_BLOCK = %000
   CURSOR_FLASH = %001
-  CURSOR_SOLID = $000
+  CURSOR_SOLID = %000
+
+  CURSOR_MASK  = %111
   
 OBJ
   system: "core.con.system"

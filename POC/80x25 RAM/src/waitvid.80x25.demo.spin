@@ -31,6 +31,8 @@ CON
   CURSOR_FLASH = driver#CURSOR_FLASH
   CURSOR_SOLID = driver#CURSOR_SOLID
 
+  CURSOR_MASK  = driver#CURSOR_MASK
+
   #0, CM, CX, CY
 
 OBJ
@@ -43,24 +45,17 @@ VAR
 
   long  cursor                                          ' text cursor
   
-PUB selftest : n | c, x, y
+PUB selftest : n | c
 
   link{0} := video | @scrn{0}
   link[1] := font#height << 24 | font.addr
-  link[2] := @cursor * $00010001
+' link[2] := @cursor * $00010001
 
   driver.init(-1, @link{0})                             ' start driver
 
-  waitcnt(clkfreq*2 + cnt)
-
-  clearScreen(%1110_100_0)                              ' cursor home
-  setCursor(CURSOR_ON|CURSOR_ULINE|CURSOR_FLASH)
-
-  printText(%1110_100_1, string("The quick brown fox jumps over the lazy dog!"))
-
-  waitcnt(clkfreq*2 + cnt)
-
   repeat bcnt                                           ' fill screen
+    c := frqa++ & 255
+    c := c << 1 | ||(c > 127)
 '
 '   colour format: %FFFF_BBB_A
 '
@@ -68,15 +63,7 @@ PUB selftest : n | c, x, y
 '      BBB: background index
 '        A: blink mode (0/1 = off/on)
 '
-    printChar(%1110_100_0, n++)
-    waitcnt(clkfreq/140 + cnt)
-
-  setCursor(CURSOR_ON|CURSOR_BLOCK|CURSOR_SOLID)        ' mouse like cursor
-
-  repeat
-    cursor.byte[CX] := ||(?frqa // columns)
-    cursor.byte[CY] := ||(frqb? // rows)
-    waitcnt(clkfreq/2 + cnt)
+    printChar(c, n++)
 
 PRI redef(c, cdef) : s
 
@@ -129,6 +116,6 @@ PRI clearScreen(attr)
   
 PRI setCursor(setup)
 
-  cursor.byte{CM} := (cursor.byte{CM} & !(CURSOR_ON|CURSOR_ULINE|CURSOR_FLASH)) | setup
+  cursor.byte{CM} := (cursor.byte{CM} & constant(!CURSOR_MASK)) | setup
   
 DAT
