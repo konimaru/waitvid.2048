@@ -1,1 +1,1 @@
-**Not quite drop-in** replacement for LameGFX
+*Not quite drop-in* replacement for [LameGFX](https://github.com/konimaru/lamestation-sdk/blob/master/LameGFX.spin)/[LameLCD](https://github.com/konimaru/lamestation-sdk/blob/master/LameLCD.spin).
