@@ -4,11 +4,11 @@ CON
 
 CON
   #-2, SX, SY
-  
+
 OBJ
    gfx: "coreGFX"
   view: "coreView"
-     
+
 PUB null : n | s
 
   gfx.init($02000000|view.init(0))
@@ -21,7 +21,7 @@ PUB null : n | s
   waitcnt(clkfreq + cnt)
 
   s := @reference16
-  
+
   repeat n from -word[s][SX] to 128
     gfx.fillBuffer(0, 0)
     gfx.blitSprite(0, s, n, 0, 0)
@@ -55,7 +55,7 @@ PUB null : n | s
   gfx.copyBuffer(0, @gfx_rpgtowncrop)
   gfx.postBuffer
 '}
-  
+
 DAT
 
 word    16   'frameboost

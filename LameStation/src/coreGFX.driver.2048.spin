@@ -20,7 +20,7 @@
 ''
 OBJ
   system: "core.con.system"
-  
+
 PUB null
 '' This is not a top level object.
 
@@ -38,7 +38,7 @@ CON
   cmd_copybuffer = $3_011
   cmd_setclip    = $7_01A
   cmd_blitsprite = $9_027
-  
+
 DAT             org     0                       ' cog binary header
 
 header_2048     long    system#ID_2             ' magic number for a cog binary
@@ -49,21 +49,21 @@ header_2048     long    system#ID_2             ' magic number for a cog binary
                 word    @__table - @header_2048 ' translation table byte offset
 
 header_size     fit     16
-                
+
 DAT             org     0                       ' graphics driver
 
-driver          jmpret  $, #setup                                             
-                                                                              
-{done}          wrlong  zero, par                                             
-{idle}          rdlong  code, par wz                                          
-                test    code, argn wc           ' check for arguments         
-        if_z    jmp     #$-2                                                  
-                                                                              
-                mov     addr, code              ' args:n:[!Z]:cmd = 16:4:3:9  
-                ror     addr, #16               ' extract argument location   
-        if_c    call    #args                   ' fetch arguments             
+driver          jmpret  $, #setup
+
+{done}          wrlong  zero, par
+{idle}          rdlong  code, par wz
+                test    code, argn wc           ' check for arguments
+        if_z    jmp     #$-2
+
+                mov     addr, code              ' args:n:[!Z]:cmd = 16:4:3:9
+                ror     addr, #16               ' extract argument location
+        if_c    call    #args                   ' fetch arguments
         if_c    addx    addr, #3                ' advance beyond last argument
-                jmp     code                    ' execute function            
+                jmp     code                    ' execute function
 
 ' #### FILL BUFFER
 ' ------------------------------------------------------
@@ -73,11 +73,11 @@ driver          jmpret  $, #setup
 fillbuffer      cmp     arg0, #0 wz
         if_e    rdword  arg0, surface           ' draw surface
                 mov     arg3, wcnt              ' words per buffer
-                                                        
-:loop           wrword  arg1, arg0                      
-                add     arg0, #2                        
-                djnz    arg3, #:loop                    
-                                                        
+
+:loop           wrword  arg1, arg0
+                add     arg0, #2
+                djnz    arg3, #:loop
+
                 jmp     %%0                     ' return
 
 ' #### COPY BUFFER
@@ -87,55 +87,55 @@ fillbuffer      cmp     arg0, #0 wz
 
 copybuffer      cmp     arg0, #0 wz
         if_e    rdword  arg0, surface           ' draw surface
-                                                                                         
-' #### POST BUFFER (VGA)                                                                 
-' ------------------------------------------------------                                 
-' parameters: arg0: dst buffer (word aligned)                                            
-'             arg1: src buffer (word aligned)                                            
-                                                                                         
-postbufferVGA   mov     arg3, wcnt              ' words per buffer                       
 
-:loop           rdword  arg2, arg1                                                       
-                add     arg1, #2                                                         
-                wrword  arg2, arg0                                                       
-                add     arg0, #2                                                         
-                djnz    arg3, #:loop                                                     
-                                                                                                                                                                                            
-                jmp     %%0                     ' return                                                                                                                                    
-                                                                                                                                                                                            
-' #### SET CLIP RECTANGLE                                                                                                                                                                   
-' ------------------------------------------------------                                                                                                                                    
-' parameters: arg0: x1                                                                                                                                                                      
-'             arg1: y1 inclusive                                                                                                                                                            
-'             arg2: x2                                                                                                                                                                      
-'             arg3: y2 exclusive                                                                                                                                                            
-                                                                                                                                                                                            
-setclip         mov     c_x1, arg0              ' copy and sanity check                                                                                                                     
-                mins    c_x1, #0                                                                                                                                                            
-                maxs    c_x1, #res_x                                                                                                                                                        
-                                                                                                                                                                                            
-                mov     c_y1, arg1                                                                                                                                                          
-                mins    c_y1, #0                                                                                                                                                            
-                maxs    c_y1, #res_y                                                                                                                                                        
-                                                                                                                                                                                            
-                mov     c_x2, arg2                                                                                                                                                          
-                mins    c_x2, #0                                                                                                                                                            
-                maxs    c_x2, #res_x                                                                                                                                                        
-                                                                                                                                                                                            
-                mov     c_y2, arg3                                                                                                                                                          
-                mins    c_y2, #0                                                                                                                                                            
-                maxs    c_y2, #res_y                                                                                                                                                        
-                                                                                                                                                                                            
-                jmp     %%0                     ' return                                                                                                                                    
-                                                                                                                                                                                            
-' #### BLIT SPRITE                                                                                                                                                                          
-' ------------------------------------------------------                                                                                                                                    
+' #### POST BUFFER (VGA)
+' ------------------------------------------------------
+' parameters: arg0: dst buffer (word aligned)
+'             arg1: src buffer (word aligned)
+
+postbufferVGA   mov     arg3, wcnt              ' words per buffer
+
+:loop           rdword  arg2, arg1
+                add     arg1, #2
+                wrword  arg2, arg0
+                add     arg0, #2
+                djnz    arg3, #:loop
+
+                jmp     %%0                     ' return
+
+' #### SET CLIP RECTANGLE
+' ------------------------------------------------------
+' parameters: arg0: x1
+'             arg1: y1 inclusive
+'             arg2: x2
+'             arg3: y2 exclusive
+
+setclip         mov     c_x1, arg0              ' copy and sanity check
+                mins    c_x1, #0
+                maxs    c_x1, #res_x
+
+                mov     c_y1, arg1
+                mins    c_y1, #0
+                maxs    c_y1, #res_y
+
+                mov     c_x2, arg2
+                mins    c_x2, #0
+                maxs    c_x2, #res_x
+
+                mov     c_y2, arg3
+                mins    c_y2, #0
+                maxs    c_y2, #res_y
+
+                jmp     %%0                     ' return
+
+' #### BLIT SPRITE
+' ------------------------------------------------------
 ' parameters: arg0: dst buffer (word aligned) or NULL
-'             arg1: src buffer (word aligned) + header                                                                                                                                      
-'             arg2: x                                                                                                                                                                       
-'             arg3: y                                                                                                                                                                       
-'             arg4: frame                                                                                                                                                                   
-                                                                                                                                                                                            
+'             arg1: src buffer (word aligned) + header
+'             arg2: x
+'             arg3: y
+'             arg4: frame
+
 blit            cmp     arg0, #0 wz
         if_e    rdword  arg0, surface           ' draw surface
 
@@ -143,15 +143,15 @@ blit            cmp     arg0, #0 wz
 ' Fetch everything necessary.
 
                 sub     arg1, #6                ' access to header
-                rdword  arg5, arg1              ' frame size in bytes                                                                                                                       
-                add     arg1, #2                                                                                                                                                            
+                rdword  arg5, arg1              ' frame size in bytes
+                add     arg1, #2
 
-                neg     xs, arg2                ' xs := -x                      (%%)                                                                                                        
-                rdword  ws, arg1                ' logical frame width                                                                                                                       
-                add     arg1, #2                                                                                                                                                            
+                neg     xs, arg2                ' xs := -x                      (%%)
+                rdword  ws, arg1                ' logical frame width
+                add     arg1, #2
 
-                neg     ys, arg3                ' ys := -y                      (##)                                                                                                        
-                rdword  hs, arg1                ' logical frame height                                                                                                                      
+                neg     ys, arg3                ' ys := -y                      (##)
+                rdword  hs, arg1                ' logical frame height
                 add     arg1, #2
 
                 mov     wb, ws                  ' take a copy for final drawing
@@ -186,12 +186,12 @@ blit            cmp     arg0, #0 wz
 
 ' Do all the necessary vertical clipping.
 
-blit_cy         add     hs, arg3                ' lower edge                                                                                                                                
+blit_cy         add     hs, arg3                ' lower edge
                 maxs    hs, c_y2                ' min(lower edge, c_y2)
                 mins    arg3, c_y1              ' max(y, c_y1)
-                                                                                       
+
                 cmps    hs, arg3 wz,wc,wr       ' if lower edge =< y
-        if_be   jmp     %%0                     '   early exit                         
+        if_be   jmp     %%0                     '   early exit
 
                 add     ys, arg3 wz {multiply?} ' ys == 0|c_y1 - y              (##)
         if_z    jmp     #blit_cx
@@ -242,11 +242,11 @@ blit_m          jmpret  $, #$+1 wc,nr           ' clear carry
                 shr     wb, mshx                ' restore width
 
 ' Do all the necessary horizontal clipping.
-                                                                                                                                                                                            
-blit_cx         add     ws, arg2                ' right edge                           
+
+blit_cx         add     ws, arg2                ' right edge
                 maxs    ws, c_x2                ' min(right edge, c_x2)
                 mins    arg2, c_x1              ' max(x, c_x1)
-                
+
                 cmps    ws, arg2 wz,wc,wr       ' if x => right edge
         if_be   jmp     %%0                     '   early exit
 
@@ -259,7 +259,7 @@ blit_cx         add     ws, arg2                ' right edge
 
                 ror     arg2, #2                ' /4
                 add     arg0, arg2
-                
+
                 shr     arg2, #29 wc            ' collect byte selector
                 muxc    arg2, #%1000            ' bit index in word (0..14)
 
@@ -268,7 +268,7 @@ blit_cx         add     ws, arg2                ' right edge
                 add     arg1, ys
                 ror     xs, #2                  ' /4
                 add     arg1, xs
-                
+
                 shr     xs, #29 wc              ' collect byte selector
                 muxc    xs, #%1000 wz           ' bit index in word (0..14)     (&&)
                 muxz    :jump, #%11             ' select hblit function
@@ -325,72 +325,72 @@ blit_cx         add     ws, arg2                ' right edge
                 jmp     %%0                     ' return
 
 
-fn_00           rdword  dstL, dstT              '  +0 =                          
+fn_00           rdword  dstL, dstT              '  +0 =
                 sub     arg4, #8*2              '  +8   update column count
-                add     dstT, #2                '  -4                            
-                rdword  dstH, dstT              '  +0 =                          
-                shl     dstH, #16               '  +8                            
-                or      dstL, dstH              '  -4   extract 16 dst pixel     
+                add     dstT, #2                '  -4
+                rdword  dstH, dstT              '  +0 =
+                shl     dstH, #16               '  +8
+                or      dstL, dstH              '  -4   extract 16 dst pixel
 
-                rdword  srcW, srcT              '  +0 = extract 8 src pixel         
-                add     srcT, #2                '  +8                               
-                shr     srcW, xs                '  -4   xs <> 0                     
+                rdword  srcW, srcT              '  +0 = extract 8 src pixel
+                add     srcT, #2                '  +8
+                shr     srcW, xs                '  -4   xs <> 0
                 or      srcW, arg3              '  +0 = add transparency (pre-shifted)
-                rol     srcW, arg5              '  +4   now aligned with dst        
-                                                                                    
-                mov     frqb, srcW              '  +8   %10 is transparent          
-                shr     frqb, #1                '  -4                               
-                andn    frqb, srcW              '  +0 =                             
-                and     frqb, grid              '  +4   extract transparent pixel   
-                                                                                    
-                mov     phsb, frqb              '  +8   |                           
-                mov     frqb, phsb              '  -4   frqb := frqb*3              
+                rol     srcW, arg5              '  +4   now aligned with dst
 
-                andn    srcW, frqb              '  +0 = clear transparent pixels    
-                and     dstL, frqb              '  +4   make space for src          
+                mov     frqb, srcW              '  +8   %10 is transparent
+                shr     frqb, #1                '  -4
+                andn    frqb, srcW              '  +0 =
+                and     frqb, grid              '  +4   extract transparent pixel
+
+                mov     phsb, frqb              '  +8   |
+                mov     frqb, phsb              '  -4   frqb := frqb*3
+
+                andn    srcW, frqb              '  +0 = clear transparent pixels
+                and     dstL, frqb              '  +4   make space for src
                 or      dstL, srcW              '  +8   combine dst/src
 
-                sub     arg5, xs wc             '  -4   
+                sub     arg5, xs wc             '  -4
                 and     arg5, #%1110            '  +0 = adjust dst bit index
         if_nc   jmp     #fn_11_tail wz          '  +4   business as usual (flags: above)
                 sub     arg4, #8*2 wz,wc        '  +8   update/check column count
                 jmp     #fn_11_next             '  -4   gap in dstL
-                
 
-fn_01           rdword  dstL, dstT              '  +0 =                          
+
+fn_01           rdword  dstL, dstT              '  +0 =
                 cmp     arg4, #8*2 wz,wc        '  +8   check column count
-                add     dstT, #2                '  -4                            
-                rdword  dstH, dstT              '  +0 =                          
-                shl     dstH, #16               '  +8                            
-                or      dstL, dstH              '  -4   extract 16 dst pixel     
+                add     dstT, #2                '  -4
+                rdword  dstH, dstT              '  +0 =
+                shl     dstH, #16               '  +8
+                or      dstL, dstH              '  -4   extract 16 dst pixel
 
-                rdword  srcW, srcT              '  +0 = extract 8 src pixel           
-                shr     srcW, xs                '  +8   xs <> 0, srcT advance n/a     
+                rdword  srcW, srcT              '  +0 = extract 8 src pixel
+                shr     srcW, xs                '  +8   xs <> 0, srcT advance n/a
                 or      srcW, arg3              '  -4   add transparency (pre-shifted)
                 rol     srcW, arg5              '  +0 = now aligned with dst
-                                                                                      
-                mov     frqb, srcW              '  +4   %10 is transparent       
-                shr     frqb, #1                '  +8                            
-                andn    frqb, srcW              '  -4                            
+
+                mov     frqb, srcW              '  +4   %10 is transparent
+                shr     frqb, #1                '  +8
+                andn    frqb, srcW              '  -4
                 and     frqb, grid              '  +0 = extract transparent pixel
-                                         
-                mov     phsb, frqb              '  +4   |                           
-                mov     frqb, phsb              '  +8   frqb := frqb*3              
+
+                mov     phsb, frqb              '  +4   |
+                mov     frqb, phsb              '  +8   frqb := frqb*3
 
 ' If column 7 is included (e.g. xs = 3, ws = 5) then the existing mask in frqb will
 ' already be big enough. Applying clip would be optional in this case but doesn't do
 ' any harm either (if applied). For consistency(?) we stick with the fn_11 version.
 
-        if_b    or      frqb, clip              '  -4   apply patch for columns          
+        if_b    or      frqb, clip              '  -4   apply patch for columns
 
-                andn    srcW, frqb              '  +0 = clear transparent pixels    
-                and     dstL, frqb              '  +4   make space for src          
-                or      dstL, srcW              '  +8   combine dst/src             
-                                                                                    
-                sub     dstT, #2                '  -4   rewind                      
-                wrword  dstL, dstT              '  +0 = update low word             
-                shr     dstL, #16               '  +8   dstL := dstH                
-                add     dstT, #2                '  -4   advance (again)             
+                andn    srcW, frqb              '  +0 = clear transparent pixels
+                and     dstL, frqb              '  +4   make space for src
+                or      dstL, srcW              '  +8   combine dst/src
+
+                sub     dstT, #2                '  -4   rewind
+                wrword  dstL, dstT              '  +0 = update low word
+                shr     dstL, #16               '  +8   dstL := dstH
+                add     dstT, #2                '  -4   advance (again)
                 wrword  dstL, dstT              '  +0 = update high word
 
                 jmp     link                    '       return
@@ -430,56 +430,56 @@ fn_11_tail      sub     dstT, #2                '  -4   rewind
         if_a    jmp     #fn_11_loop             '       for all columns
 
                 jmp     link                    '       return
-            
+
 ' support code (fetch up to 8 arguments)
 
-args            rdlong  arg0, addr              ' read 1st argument                 
+args            rdlong  arg0, addr              ' read 1st argument
                 cmpsub  addr, delta wc          ' [increment address and] check exit
-        if_nc   jmpret  zero, args_ret wc,nr    ' cond: early return                
-                                                                                    
-                rdlong  arg1, addr              ' read 2nd argument                 
-                cmpsub  addr, delta wc                                              
-        if_nc   jmpret  zero, args_ret wc,nr                                        
-                                                                                    
-                rdlong  arg2, addr              ' read 3rd argument                 
-                cmpsub  addr, delta wc                                              
-        if_nc   jmpret  zero, args_ret wc,nr                                        
-                                                                                    
-                rdlong  arg3, addr              ' read 4th argument                 
-                cmpsub  addr, delta wc                                              
-        if_nc   jmpret  zero, args_ret wc,nr                                        
+        if_nc   jmpret  zero, args_ret wc,nr    ' cond: early return
 
-                rdlong  arg4, addr              ' read 5th argument                 
-                cmpsub  addr, delta wc                                              
-        if_nc   jmpret  zero, args_ret wc,nr                                        
+                rdlong  arg1, addr              ' read 2nd argument
+                cmpsub  addr, delta wc
+        if_nc   jmpret  zero, args_ret wc,nr
 
-                rdlong  arg5, addr              ' read 6th argument                 
-                cmpsub  addr, delta wc                                              
-        if_nc   jmpret  zero, args_ret wc,nr                                        
+                rdlong  arg2, addr              ' read 3rd argument
+                cmpsub  addr, delta wc
+        if_nc   jmpret  zero, args_ret wc,nr
 
-                rdlong  arg6, addr              ' read 7th argument                 
-                cmpsub  addr, delta wc                                              
-        if_nc   jmpret  zero, args_ret wc,nr                                        
+                rdlong  arg3, addr              ' read 4th argument
+                cmpsub  addr, delta wc
+        if_nc   jmpret  zero, args_ret wc,nr
 
-                rdlong  arg7, addr              ' read 8th argument                 
-'               cmpsub  addr, delta wc                                              
-'       if_nc   jmpret  zero, args_ret wc,nr                                        
-                                                                                    
-args_ret        ret                                                                 
+                rdlong  arg4, addr              ' read 5th argument
+                cmpsub  addr, delta wc
+        if_nc   jmpret  zero, args_ret wc,nr
+
+                rdlong  arg5, addr              ' read 6th argument
+                cmpsub  addr, delta wc
+        if_nc   jmpret  zero, args_ret wc,nr
+
+                rdlong  arg6, addr              ' read 7th argument
+                cmpsub  addr, delta wc
+        if_nc   jmpret  zero, args_ret wc,nr
+
+                rdlong  arg7, addr              ' read 8th argument
+'               cmpsub  addr, delta wc
+'       if_nc   jmpret  zero, args_ret wc,nr
+
+args_ret        ret
 
 ' initialised data and/or presets
 
-surface         long    4                       ' draw surface location       
-                                                                              
-wcnt            long    res_x * res_y / 4 / 2   ' 4 pixels / byte             
-                                                ' 2 bytes / word              
-c_x1            long    0                                                     
-c_y1            long    0                                                     
-c_x2            long    res_x                                                 
-c_y2            long    res_y                                                 
-                                                                              
-delta           long    %001_0 << 28 | $FFFC    ' %10 deal with movi setup    
-                                                ' -(-4) address increment     
+surface         long    4                       ' draw surface location
+
+wcnt            long    res_x * res_y / 4 / 2   ' 4 pixels / byte
+                                                ' 2 bytes / word
+c_x1            long    0
+c_y1            long    0
+c_x2            long    res_x
+c_y2            long    res_y
+
+delta           long    %001_0 << 28 | $FFFC    ' %10 deal with movi setup
+                                                ' -(-4) address increment
 argn            long    |< 12                   ' function does have arguments
 mshx            long    16{bit} -1              ' multiplier pre-shift
 
@@ -504,28 +504,28 @@ setup           add     surface, par            ' draw surface
                 movs    func+%00, #fn_00        ' |
                 movs    func+%01, #fn_01        ' |
                 movs    func+%11, #fn_11        ' hblit function setup
-                
-                jmp     %%0                     ' return      
+
+                jmp     %%0                     ' return
 
                 fit
-                
+
 ' uninitialised data and/or temporaries
 
                 org     setup
-                             
-arg0            res     1    
-arg1            res     1    
-arg2            res     1    
-arg3            res     1    
-arg4            res     1    
-arg5            res     1    
-arg6            res     1    
-arg7            res     1    
 
-addr            res     1    
-code            res     1    
+arg0            res     1
+arg1            res     1
+arg2            res     1
+arg3            res     1
+arg4            res     1
+arg5            res     1
+arg6            res     1
+arg7            res     1
+
+addr            res     1
+code            res     1
 link            res     1
-    
+
 reuse           res     alias
 
 xs              res     1
@@ -542,7 +542,7 @@ dstH{igh}       res     1
 dstL{ow}        res     1
 srcW{ord}       res     1
 
-tail            fit          
+tail            fit
 
 ' aliases (different functions may share VAR space)
 
@@ -554,8 +554,8 @@ DAT                                             ' translation table
 
 __table         word    (@__names - @__table)/2
 
-'                     function has(1) no(0) argument(s) ----+ 
-'                                number of arguments -1 --+ |   
+'                     function has(1) no(0) argument(s) ----+
+'                                number of arguments -1 --+ |
 '                                                         | |
 {fillbuffer}    word    (@fillbuffer - @driver) >> 2 | %001_1 << 12 ' 2 arguments
 {copybuffer}    word    (@copybuffer - @driver) >> 2 | %001_1 << 12 ' 2 arguments
@@ -564,7 +564,7 @@ __table         word    (@__names - @__table)/2
 
                 word    res_m
                 word    res_a
-                
+
 __names         byte    "fillbuffer", 0
                 byte    "copybuffer", 0
                 byte    "setclip", 0
@@ -580,14 +580,14 @@ EndOfBinary     long    -1[0 #> (512 - (@EndOfBinary - @header_2048) / 4)]
 CON
   zero  = $1F0                                  ' par (dst only)
   func  = $1F4                                  ' outa
-  
+
   res_x = 128                                   ' |
   res_y = 64                                    ' |
   res_m = 2                                     ' UI support
   res_a = 8                                     ' max command arguments
 
   alias = 0
-  
+
 DAT
 {{
 

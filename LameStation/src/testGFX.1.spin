@@ -7,11 +7,11 @@ OBJ
   view: "coreView"
 
    dbg: "FullDuplexSerial"
-  
+
 PUB null
 
   dbg.start(31, 30, %0000, 115200)
-  
+
   gfx.init($02000000|view.init(0))
   waitcnt(clkfreq + cnt)
   gfx.fillBuffer(0, %%33333333)
@@ -47,31 +47,31 @@ PUB null
 PRI speed : a | t, x, y
 
   waitcnt(clkfreq*3 + cnt)
-  
+
   gfx.fillbuffer(0, 0)
-  
+
   frqa := cnt
   frqb := cnt
 
   dbg.tx(0)
   repeat 10
-    t := -cnt                            
-    repeat 10000                         
-      x := ||(?frqa // 121) -8           
-      y := ||(?frqb //  57) -8           
+    t := -cnt
+    repeat 10000
+      x := ||(?frqa // 121) -8
+      y := ||(?frqb //  57) -8
       gfx.blitSprite(0, @gfx_blackhole, x, y, 0)
-    t +=  cnt                            
-    a += t                               
-    dbg.dec(t)                           
-    dbg.tx(13)                           
+    t +=  cnt
+    a += t
+    dbg.dec(t)
+    dbg.tx(13)
 
-  dbg.tx(13)                             
-  dbg.dec(a/10 - 53_000_000)             
-  dbg.tx(13)                             
+  dbg.tx(13)
+  dbg.dec(a/10 - 53_000_000)
+  dbg.tx(13)
 
   gfx.postBuffer
   waitcnt(clkfreq*3 + cnt)
-  
+
 DAT
 
 word    2048  'frameboost

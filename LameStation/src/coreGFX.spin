@@ -7,7 +7,7 @@
 ''
 OBJ
   driver: "coreGFX.driver.2048"
-  
+
 VAR
   long  instruction
   long  drawsurface
@@ -26,7 +26,7 @@ PUB init(screen{8:*:16})
   drawsurface.word{0} := driver.init(-1, @instruction) >> 16
 
   longfill(@c_fillbuffer, @c_parameters << 16, 4)
-  
+
   c_fillbuffer |= driver#cmd_fillbuffer
   c_copybuffer |= driver#cmd_copybuffer
   c_setclip    |= driver#cmd_setclip

@@ -20,7 +20,7 @@ CON
 VAR
   long  insn
   long  sync
-        
+
 PUB null
 '' This is not a top level object.
 
@@ -43,7 +43,7 @@ PUB init(primary)
   longfill(@screen{0}, 0, 128)                          ' before making DAT public
   ifnot primary
     setn(@screen{0}, 0)                                 ' auto-attach DAT
-    
+
   return @screen{0}
 
 PUB setn(address, sidx)
@@ -67,7 +67,7 @@ PUB waitVBL
   until sync
   repeat
   while sync                                            ' 1/0 transition
-  
+
 DAT                     org     0                       ' single screen LCD driver
 
 screen                  jmpret  $, #setup               ' once
@@ -78,20 +78,20 @@ main                    movs    read, #line             ' reset
                         mov     eins, rcnt
                         or      eins, CMD_SetPage       ' chip select embedded
                         call    #sendLCDcommand         ' set page
-                        
+
 fill                    mov     ccnt, #64
 
                         mov     eins, scrn wz           ' |
 read            if_nz   mov     eins, line              ' read data or black (detached)
                         add     $-1, #1                 ' |
-                        
+
                         mov     zwei, eins
                         shr     zwei, #8
 
                         test    idnt, #1 wc             ' even or odd frame?
                 if_nc   andn    eins, zwei              ' apply gray value
                         and     eins, dmsk              ' limit to valid pins
-              
+
                         or      eins, CMD_WriteByte     ' chip select embedded
                         call    #sendLCDcommand         ' send data
 
@@ -141,20 +141,20 @@ sendLCDcommand_ret      ret
 ' Given screen dimensions of 128x64 pixel and 2 bits/pixel we're looking at
 ' a linear buffer of 64*128*2 bits == 64*32 bytes == 2K. The LCD buffers needs
 ' the bytes effectively rotated by 90 deg.
-'                                         
-'    +---------------+---------------+    An 8x8 pixel block holds 16bytes or     
-' R0 |0 1 2 3 4 5 6 7|8 9 A B C D E F|    8 words. The LCD expects data to be     
-'    +---------------+---------------+    formatted in a way that all 0 bits      
-' R1 |0 1 2 3 4 5 6 7|8 9 A B C D E F|    are delivered first starting with R0.0  
-'    +---------------+---------------+    in bit position 0 and R7.0 in position  
-' R2 |0 1 2 3 4 5 6 7|8 9 A B C D E F|    7. This new byte is followed by column  
-'    +---------------+---------------+    1 and so on until column F.             
-' R3 |0 1 2 3 4 5 6 7|8 9 A B C D E F|                                            
-'    +---------------+---------------+    To achieve this we scan all 16x8 blocks 
+'
+'    +---------------+---------------+    An 8x8 pixel block holds 16bytes or
+' R0 |0 1 2 3 4 5 6 7|8 9 A B C D E F|    8 words. The LCD expects data to be
+'    +---------------+---------------+    formatted in a way that all 0 bits
+' R1 |0 1 2 3 4 5 6 7|8 9 A B C D E F|    are delivered first starting with R0.0
+'    +---------------+---------------+    in bit position 0 and R7.0 in position
+' R2 |0 1 2 3 4 5 6 7|8 9 A B C D E F|    7. This new byte is followed by column
+'    +---------------+---------------+    1 and so on until column F.
+' R3 |0 1 2 3 4 5 6 7|8 9 A B C D E F|
+'    +---------------+---------------+    To achieve this we scan all 16x8 blocks
 ' R4 |0 1 2 3 4 5 6 7|8 9 A B C D E F|    of the structure shown to the left. This
-'    +---------------+---------------+    gives us outer and inner loop. Address  
+'    +---------------+---------------+    gives us outer and inner loop. Address
 ' R5 |0 1 2 3 4 5 6 7|8 9 A B C D E F|    offsets increment by 2 (word) for each
-'    +---------------+---------------+    column and 8*32 == 256 for each row.    
+'    +---------------+---------------+    column and 8*32 == 256 for each row.
 ' R6 |0 1 2 3 4 5 6 7|8 9 A B C D E F|
 '    +---------------+---------------+
 ' R7 |0 1 2 3 4 5 6 7|8 9 A B C D E F|
@@ -165,11 +165,11 @@ translateLCD            add     rcnt, radv              ' 8 blocks of 8 rows
 
                 if_z    mov     addr, scrn              ' |
                         movd    :set, #line             ' rewind
-                
+
                         mov     ccnt, #16               ' 16 blocks of 8 columns
 
 ' read 8 words of an 8x8 pixel block (words are separated by a whole line, 32 bytes)
-                        
+
 :columns                rdword  xsrc+0, addr            ' load 8x8 pixel block
                         add     addr, #32
                         rdword  xsrc+1, addr
@@ -248,7 +248,7 @@ CMD_WriteByte           long    %01 << CSA | $00 << DB | 1 << DI
 LCD_CE_L                long    %01 << CSA
 LCD_CE_B                long    %11 << CSA
 
-LCD_Enable              long    1 << EN                                 
+LCD_Enable              long    1 << EN
 
 mask                    long    |< LCD_E - |< LCD_S
 
@@ -347,7 +347,7 @@ CON
   zero  = $1F0                                          ' par (dst only)
 
   alias = 0
-  
+
 DAT
 {{
 
