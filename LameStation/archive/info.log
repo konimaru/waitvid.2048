@@ -1,0 +1,5 @@
+- fixed overhead (LameGFX: 128 + h*16, y-clipping in loop)
+
+base: 228, (+140 ys != 0, +72 frame != 0)
+			  |
+			12 + n*32, n = 1..4
