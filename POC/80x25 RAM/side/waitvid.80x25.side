@@ -1,0 +1,11 @@
+waitvid.80x25.c
+waitvid.80x25.driver.c
+halfrange8x16-2font.c
+>compiler=C
+>memtype=lmm main ram
+>optimize=-Os
+>-Wall
+>-fno-exceptions
+>-enable_pruning
+>defs::-std=c99 -pedantic
+>BOARD::QUICKSTART
