@@ -11,16 +11,19 @@
 #define VIDEO (((VGRP) << 9 | (MODE) << 8 | 0xFC) << 21)
 
 
-typedef struct {
-    unsigned char mode;
-    unsigned char x, y;
+typedef union {
+    uint32_t pad;
+    struct {
+        unsigned char mode;
+        unsigned char x, y;
+    } payload;
 } cursor;
 
 
 static volatile uint32_t link[4];
 
 static uint32_t scrn[BCNT / 2];
-static cursor one = {0, 0, 0};
+static cursor one = {0};
 
 extern const uint16_t font[];
 extern const uint32_t driver[];
@@ -51,15 +54,15 @@ static int init(void) {
 
 static void printChar(unsigned char attr, unsigned char c) {
     uint16_t *word = (uint16_t *)&scrn[0];
-    unsigned char x = one.x;
-    unsigned char y = one.y;
+    unsigned char x = one.payload.x;
+    unsigned char y = one.payload.y;
     
     word[BCNT - y * COLUMNS - ++x] = attr | (c & 127) << 8;
     if (!(x %= COLUMNS))
         y = (y+1) % ROWS;
         
-    one.x = x;
-    one.y = y;
+    one.payload.x = x;
+    one.payload.y = y;
 }
 
 int main(int argc, char **argv) {
@@ -73,6 +76,6 @@ int main(int argc, char **argv) {
         unsigned char c = FRQA++;
         c = c << 1 | (c > 127);
         printChar(c, i);
-    }    
+    }
     exit(0);
 }
