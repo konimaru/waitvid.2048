@@ -10,20 +10,29 @@
                               
 #define VIDEO (((VGRP) << 9 | (MODE) << 8 | 0xFC) << 21)
 
+#define CURSOR_ON    (1 << 2)
+#define CURSOR_OFF   (0 << 2)
+#define CURSOR_ULINE (1 << 1)
+#define CURSOR_BLOCK (0 << 1)
+#define CURSOR_FLASH (1 << 0)
+#define CURSOR_SOLID (0 << 0)
+
+#define CURSOR_MASK  (CURSOR_ON|CURSOR_ULINE|CURSOR_FLASH)
+
 
 typedef union {
-    uint32_t pad;
     struct {
         unsigned char mode;
         unsigned char x, y;
     } payload;
+    uint32_t pad;
 } cursor;
 
 
 static volatile uint32_t link[4];
 
 static uint32_t scrn[BCNT / 2];
-static cursor one = {0};
+static cursor one = {{CURSOR_ON|CURSOR_ULINE|CURSOR_FLASH, 0, 0}};
 
 extern const uint16_t font[];
 extern const uint32_t driver[];
