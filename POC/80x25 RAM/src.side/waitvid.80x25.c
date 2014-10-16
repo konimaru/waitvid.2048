@@ -33,6 +33,7 @@ static volatile uint32_t link[4];
 
 static uint32_t scrn[BCNT / 2];
 static cursor one = {{CURSOR_ON|CURSOR_ULINE|CURSOR_FLASH, 0, 0}};
+static cursor two = {{CURSOR_ON|CURSOR_BLOCK|CURSOR_SOLID, 1, 0}};
 
 extern const uint16_t font[];
 extern const uint32_t driver[];
@@ -75,9 +76,9 @@ static void printChar(unsigned char attr, unsigned char c) {
 }
 
 int main(int argc, char **argv) {
-    link[0] =      VIDEO | (uint32_t)&scrn[0];
-    link[1] =   16 << 24 | (uint32_t)&font[0];
-    link[2] = 0x00010001 * (uint32_t)&one;
+    link[0] =          VIDEO | (uint32_t)&scrn[0];
+    link[1] =       16 << 24 | (uint32_t)&font[0];
+    link[2] = (uint32_t)&one | (uint32_t)&two << 16;
 
     init();
 
