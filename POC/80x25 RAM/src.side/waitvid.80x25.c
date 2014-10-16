@@ -20,6 +20,8 @@
 #define CURSOR_MASK  (CURSOR_ON|CURSOR_ULINE|CURSOR_FLASH)
 
 
+typedef volatile uint32_t mailbox;
+
 typedef union {
     struct {
         unsigned char mode;
@@ -28,8 +30,6 @@ typedef union {
     uint32_t pad;
 } cursor;
 
-
-static volatile uint32_t link[4];
 
 static uint32_t scrn[BCNT / 2];
 static cursor one = {{CURSOR_ON|CURSOR_ULINE|CURSOR_FLASH, 0, 0}};
@@ -47,19 +47,19 @@ static int launch(int ID, const void *code, uint32_t data) {
     return ID;
 }
 
-static int init(void) {
+static int init(int ID, mailbox *link) {
     int cog;
 
-    link[3] = 0;
+    link[3] = 0;            // idle pre-set
     
-    cog = launch( -1, driver, (uint32_t)&link[0]) & 7;
-    cog = launch(cog, driver, (uint32_t)&link[0]|0x8000);
+    cog = launch( ID, driver, (uint32_t)link) & 7;
+    cog = launch(cog, driver, (uint32_t)link|0x8000);
     
     while (link[3] != 0xFFFF);
     
-    link[3] = 0;
+    link[3] = 0;            // unlock cogs
     
-    return cog;
+    return cog;             // secondary ID
 }
 
 static void printChar(unsigned char attr, unsigned char c) {
@@ -76,11 +76,13 @@ static void printChar(unsigned char attr, unsigned char c) {
 }
 
 int main(int argc, char **argv) {
-    link[0] =          VIDEO | (uint32_t)&scrn[0];
-    link[1] =       16 << 24 | (uint32_t)&font[0];
+    static mailbox link[4];
+
+    link[0] =          VIDEO | (uint32_t)scrn;
+    link[1] =       16 << 24 | (uint32_t)font;
     link[2] = (uint32_t)&one | (uint32_t)&two << 16;
 
-    init();
+    init(-1, link);
 
     for (int i = 0; i < BCNT; i++) {
         unsigned char c = FRQA++;
