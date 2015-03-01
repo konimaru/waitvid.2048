@@ -2,8 +2,8 @@
 '' VGA driver 320x256 (single cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2013/05/04
-''       Version: 0.20
+'' Last modified: 2015/03/01
+''       Version: 0.21
 ''
 '' long[par][0]:  screen: [!Z]:addr = 16:16 -> zero (accepted), 4n
 '' long[par][1]: colours: [!Z]:addr = 16:16 -> zero (accepted), 4n
@@ -18,6 +18,7 @@
 '' 20130502: revoked palette update code, now embedded for speed (doubled colour resolution)
 '' 20130503: minor change to palette format
 '' 20130504: reinstated palette update code
+'' 20150301: minor cleanup (investigation into adding a cursor)
 ''
 OBJ
   system: "core.con.system"
@@ -42,7 +43,7 @@ header_size     fit     16
                 
 DAT             org     0                       ' video driver
 
-driver          jmp     #main                   ' skip palette
+driver          jmpret  $, #setup               '  -4   once
 
 ' A palette entry holds two pairs of FG/BG colours (high word: blink colours, low word: normal colours).
 
@@ -62,15 +63,7 @@ driver          jmp     #main                   ' skip palette
                 long    $0000A800, $0C00A80C, $3000A830, $3C00A83C, $C000A8C0, $CC00A8CC, $F000A8F0, $FC00A8FC
                 long    $0000B000, $0C00B00C, $3000B030, $3C00B03C, $C000B0C0, $CC00B0CC, $F000B0F0, $FC00B0FC
                 long    $0000B800, $0C00B80C, $3000B830, $3C00B83C, $C000B8C0, $CC00B8CC, $F000B8F0, $FC00B8FC
-                long    $00000000
 
-main            mov     $000, $080              ' restore initial entry
-                call    #setup                  ' actually start driver
-
-                mov     dira, mask              ' drive outputs
-
-' Setup complete, enter display loop.
-                
 '               mov     ecnt, #1
 vsync           call    #blank                  ' front porch
 '               djnz    ecnt, #$-1
@@ -398,13 +391,9 @@ line            long    0 << 12 | 960           ' 256/960
 vcfg_norm       long    %0_01_0_00_000 << 23 | vgrp << 9 | vpin
 vcfg_sync       long    %0_01_0_00_000 << 23 | sgrp << 9 | %11
 
-mask            long    vpin << (vgrp * 8) | %11 << (sgrp * 8)
-
 dst2            long    2 << 9                  ' dst +/-= 2
 dst4            long    4 << 9                  ' dst +/-= 4
 
-scrn_           long    0                       ' |
-plte_           long    4                       ' |
 updt_           long    8                       ' |
 fcnt_           long    12                      ' mailbox addresses (local copy)
 
@@ -432,11 +421,21 @@ setup           add     scrn_, par              ' @long[par][0]
                 movi    frqa, #%0001_00000      ' 5MHz * 16/1 = 80MHz
 
                 mov     vcfg, vcfg_sync         ' VGA, 2 colour mode
+
+                max     dira, mask              ' drive outputs
+                mov     $000, pal0              ' restore colour entry 0
+                jmp     #vsync                  ' return
+
+' Local data, used only once.
+
+scrn_           long    0                       ' |
+plte_           long    4                       ' mailbox addresses (local copy)
+
+pal0            long    $00000000               ' first palette entry
+mask            long    vpin << (vgrp * 8) | %11 << (sgrp * 8)
+
+EOD{ata}        fit
                 
-' Setup complete, do the heavy lifting upstairs ...
-
-setup_ret       ret
-
 ' uninitialised data and/or temporaries
 
                 org     setup
