@@ -2,12 +2,12 @@
 '' VGA driver 320x256 (single cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2015/03/01
-''       Version: 0.21
+'' Last modified: 2015/03/04
+''       Version: 0.22
 ''
-'' long[par][0]:  screen: [!Z]:addr = 16:16 -> zero (accepted), 4n
-'' long[par][1]: colours: [!Z]:addr = 16:16 -> zero (accepted), 4n
-'' long[par][2]: palette: [!Z]:addr = 16:16 -> zero (accepted), 4n (runtime update)
+'' long[par][0]:           [!Z]:addr =     16:16 -> zero (accepted) screen buffer           (4n)
+'' long[par][1]: addr:[!Z]:addr:[!Z] = 14:2:14:2 -> zero (accepted) cursor/colour buffer    (4n/4n)
+'' long[par][2]:           [!Z]:addr =     16:16 -> zero (accepted) palette, runtime update (4n)
 '' long[par][3]: frame indicator
 ''
 '' acknowledgements
@@ -76,8 +76,18 @@ vsync           call    #blank                  ' front porch
 
                 xor     sync, #$0101            ' inactive
 
-' Put some distance between vertical blank indication and palette request fetch.
+' Put some distance between vertical blank indication and cursor/palette request fetch.
+{
+                rdbyte  eins, crsx              ' horizontal position
+                max     eins, #res_x/8          ' out of range is invisible
+                ror     eins, #2                ' long index, keep byte lane
+                add     eins, #pix              ' base address
+                movd    crs3, eins              ' insert xor target
 
+                shr     eins, #30-3             ' byte lane *8
+                mov     pmsk, #$FF              ' xor mask
+                shl     pmsk, eins              ' final location
+'}
                 rdlong  updt, updt_ wz          ' fetch palette update request
         if_nz   wrlong  zero, updt_             ' acknowledge
         if_nz   ror     updt, #1{/2}            ' half but keep non-zero marker
@@ -400,6 +410,9 @@ fcnt_           long    12                      ' mailbox addresses (local copy)
 resy            long    res_y * 4               ' actual scanlines
 blnk            long    |< 25                   ' flashing mask
 
+crsx            long    1                       ' |
+crsy            long    2                       ' cursor location
+
 ' Stuff below is re-purposed for temporary storage.
 
 setup           add     scrn_, par              ' @long[par][0]
@@ -412,6 +425,12 @@ setup           add     scrn_, par              ' @long[par][0]
 
                 wrlong  zero, scrn_             ' |
                 wrlong  zero, plte_             ' acknowledge
+
+                ror     plte, #16               ' cursor address visible
+                andn    plte, #%11              ' force 4n
+                add     crsx, plte              ' |
+                add     crsy, plte              ' resolve source addresses
+                rol     plte, #16               ' restore colour buffer
 
                 movi    ctrb, #%0_11111_000     ' LOGIC always (loader support)
 
@@ -443,12 +462,12 @@ EOD{ata}        fit
 scrn            res     1                       ' screen buffer reference  < setup +4   (%%)    
 plte            res     1                       ' colour buffer reference  < setup +5   (%%)
 
-ecnt            res     1                       ' element count
-scnt            res     1                       ' scanlines
-
-pix             res     10                      ' scanline byffer
 one             res     40                      ' |
 two             res     40                      ' palette buffers
+pix             res     10                      ' scanline buffer
+
+ecnt            res     1                       ' element count (pix overflow, pix+10)
+scnt            res     1                       ' scanlines
 
 eins            res     1
 zwei            res     1
