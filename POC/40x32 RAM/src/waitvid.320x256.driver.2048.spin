@@ -3,12 +3,16 @@
 ''
 ''        Author: Marko Lukat
 '' Last modified: 2015/03/05
-''       Version: 0.23
+''       Version: 0.24
 ''
 '' long[par][0]:           [!Z]:addr =     16:16 -> zero (accepted) screen buffer           (4n)
 '' long[par][1]: addr:[!Z]:addr:[!Z] = 14:2:14:2 -> zero (accepted) cursor/colour buffer    (4n/4n)
 '' long[par][2]:           [!Z]:addr =     16:16 -> zero (accepted) palette, runtime update (4n)
 '' long[par][3]: frame indicator
+''
+'' cursor format: %00000000_yyyyyyyy_xxxxxxxx_00000_mmm
+'' - mode flags are ignored, only solid block mode is supported
+'' - out of range values disable cursor
 ''
 '' acknowledgements
 '' - loader code based on work done by Phil Pilgrim (PhiPi)
@@ -20,6 +24,16 @@
 '' 20130504: reinstated palette update code
 '' 20150301: minor cleanup (investigation into adding a cursor)
 ''
+CON
+  CURSOR_ON    = %100
+  CURSOR_OFF   = %000
+  CURSOR_ULINE = %010
+  CURSOR_BLOCK = %000
+  CURSOR_FLASH = %001
+  CURSOR_SOLID = %000
+
+  CURSOR_MASK  = %111
+
 OBJ
   system: "core.con.system"
     
