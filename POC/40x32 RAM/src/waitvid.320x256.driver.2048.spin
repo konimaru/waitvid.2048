@@ -2,8 +2,8 @@
 '' VGA driver 320x256 (single cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2015/03/04
-''       Version: 0.22
+'' Last modified: 2015/03/05
+''       Version: 0.23
 ''
 '' long[par][0]:           [!Z]:addr =     16:16 -> zero (accepted) screen buffer           (4n)
 '' long[par][1]: addr:[!Z]:addr:[!Z] = 14:2:14:2 -> zero (accepted) cursor/colour buffer    (4n/4n)
@@ -77,22 +77,12 @@ vsync           call    #blank                  ' front porch
                 xor     sync, #$0101            ' inactive
 
 ' Put some distance between vertical blank indication and cursor/palette request fetch.
-{
-                rdbyte  eins, crsx              ' horizontal position
-                max     eins, #res_x/8          ' out of range is invisible
-                ror     eins, #2                ' long index, keep byte lane
-                add     eins, #pix              ' base address
-                movd    crs3, eins              ' insert xor target
 
-                shr     eins, #30-3             ' byte lane *8
-                mov     pmsk, #$FF              ' xor mask
-                shl     pmsk, eins              ' final location
-'}
                 rdlong  updt, updt_ wz          ' fetch palette update request
         if_nz   wrlong  zero, updt_             ' acknowledge
         if_nz   ror     updt, #1{/2}            ' half but keep non-zero marker
-        if_nz   mov     sub7, subn+0            ' |
-        if_nz   mov     sub1, subn+1            ' reset loader
+        if_nz   add     sub7, dst128            ' |
+        if_nz   add     sub1, dst128            ' reset loader
 
 ' The first four back porch lines are used to (optionally) update the palette.
 
@@ -105,6 +95,22 @@ vsync           call    #blank                  ' front porch
                 mov     ecnt, #38 -4 -16
                 call    #blank                  ' back porch (2/3)
                 djnz    ecnt, #$-1
+
+' Handle cursor update/preparation (ctrb inactive now)
+
+                rdbyte  phsb, crsx              ' horizontal position
+                max     phsb, #res_x/8          ' out of range is invisible
+                ror     phsb, #2                ' long index, keep byte lane
+                add     phsb, #pix              ' base address
+                movd    crs3, phsb              ' insert xor target
+
+                shr     phsb, #30-3             ' byte lane *8
+                mov     pmsk, #$FF              ' xor mask
+                shl     pmsk, phsb              ' final location
+
+                rdbyte  phsb, crsy              ' vertical position
+                shl     phsb, #5                ' in scanlines
+                sub     phsb, resy              ' adjustment (upside down)
 
 ' The last 16 invisible lines are used for fetching colour. This will cause
 ' pixel updates but they are not emitted so that's OK.
@@ -131,10 +137,8 @@ vsync           call    #blank                  ' front porch
 
                 jmp     #vsync                  ' next frame
 
-subn            rdlong  $07F, phsb              ' |
-                rdlong  $07E, phsb              ' initialisation
 
-blank           mov     vscl, line              ' 256/960
+blank           mov     vscl, phsa              ' 256/960
                 waitvid sync, #%0000
 
                 cmp     updt, #0 wz             ' enabled?
@@ -142,10 +146,10 @@ blank           mov     vscl, line              ' 256/960
 
                 mov     phsb, #32 * 4 -1        ' byte count (8n + 7)
                 
-sub7            rdlong  0-0, phsb               ' |
+sub7    if_be   rdlong  511, phsb               ' |
                 sub     $-1, dst2               ' |
                 sub     phsb, #7 wz             ' |
-sub1            rdlong  0-0, phsb               ' |
+sub1    if_be   rdlong  510, phsb               ' |
                 sub     $-1, dst2               ' sub #7/djnz (Thanks Phil!)
         if_nz   djnz    phsb, #sub7             ' load 32(*4) palette entries
 
@@ -237,15 +241,16 @@ fetch           mov     drei, scnt              ' working copy
 {slot}'         nop                             '               empty
                 rdlong  pix+6, eins             ' 192..223
                 add     eins, #4
-{slot}'         nop                             '               empty
+crs0            neg     vier, phsb              '               res_y*4-y*32
                 rdlong  pix+7, eins             ' 224..255
                 add     eins, #4
-{slot}'         nop                             '               empty
+crs1            sub     vier, scnt              '               res_y*4-y*32-scnt
                 rdlong  pix+8, eins             ' 256..287
                 add     eins, #4
-{slot}'         nop                             '               empty
+crs2            shr     vier, #5 wz             '               check character line
                 rdlong  pix+9, eins             ' 288..319
                 add     eins, #4
+crs3    if_z    xor     0-0, pmsk               '               apply block cursor
 
 fetch_ret       ret
 
@@ -396,13 +401,13 @@ sync            long    $0200                   ' locked to %00 {%hv}
 slow_value      long    $000FFFC0               ' 31/14/6
 slow            long    6 << 12 | 306           '   6/306
 hvis            long    3 << 12 | 24            '   3/24
-line            long    0 << 12 | 960           ' 256/960
 
 vcfg_norm       long    %0_01_0_00_000 << 23 | vgrp << 9 | vpin
 vcfg_sync       long    %0_01_0_00_000 << 23 | sgrp << 9 | %11
 
-dst2            long    2 << 9                  ' dst +/-= 2
-dst4            long    4 << 9                  ' dst +/-= 4
+dst2            long      2 << 9                ' dst +/-= 2
+dst4            long      4 << 9                ' dst +/-= 4
+dst128          long    128 << 9                ' dst +/-= 128
 
 updt_           long    8                       ' |
 fcnt_           long    12                      ' mailbox addresses (local copy)
@@ -438,6 +443,8 @@ setup           add     scrn_, par              ' @long[par][0]
 
                 movi    ctra, #%0_00001_111     ' PLL, VCO/1
                 movi    frqa, #%0001_00000      ' 5MHz * 16/1 = 80MHz
+                movs    frqa, #res_x*3/4        ' |
+                movs    frqa, #0                ' insert res_x*3 into phsa
 
                 mov     vcfg, vcfg_sync         ' VGA, 2 colour mode
 
@@ -466,6 +473,7 @@ one             res     40                      ' |
 two             res     40                      ' palette buffers
 pix             res     10                      ' scanline buffer
 
+pmsk            res     alias                   ' cursor mask
 ecnt            res     1                       ' element count (pix overflow, pix+10)
 scnt            res     1                       ' scanlines
 
@@ -499,5 +507,7 @@ CON
   res_x   = 320                                 ' |
   res_y   = 256                                 ' |
   res_m   = 4                                   ' UI support
+
+  alias   = 0
   
 DAT
