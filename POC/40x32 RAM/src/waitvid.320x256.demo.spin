@@ -2,8 +2,8 @@
 '' VGA driver 320x256 (single cog) - demo
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2015/03/05
-''       Version: 0.9
+'' Last modified: 2015/03/06
+''       Version: 0.10
 ''
 CON
   _clkmode = XTAL1|PLL16X
@@ -28,11 +28,10 @@ OBJ
     font: "generic8x8-1font"
 
 VAR
-  long  link[driver#res_m], base
+  long  link[driver#res_m], base, cursor
 
   long  screen[quadP]
   long  colour[quadC]
-  long  cursor
   
 PUB selftest
 
@@ -55,10 +54,12 @@ PRI fill_0(col) : n | x, y
       print(x, y, n++, ?frqb & mbyte)
 
   repeat y from 0 to 31
-    cursor.byte[CY] := y
+    n.byte[CY] := y
     repeat x from 0 to 39
-      cursor.byte[CX] := x
+      n.byte[CX] := x
+
       waitVBL
+      cursor := n
 
   cursor.byte[CX] := constant(res_x / 8)                ' off
 
