@@ -2,8 +2,8 @@
 '' VGA driver 320x256 (single cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2015/03/05
-''       Version: 0.24
+'' Last modified: 2015/03/06
+''       Version: 0.25
 ''
 '' long[par][0]:           [!Z]:addr =     16:16 -> zero (accepted) screen buffer           (4n)
 '' long[par][1]: addr:[!Z]:addr:[!Z] = 14:2:14:2 -> zero (accepted) cursor/colour buffer    (4n/4n)
@@ -23,6 +23,7 @@
 '' 20130503: minor change to palette format
 '' 20130504: reinstated palette update code
 '' 20150301: minor cleanup (investigation into adding a cursor)
+'' 20150306: implemented cursor support (solid block only)
 ''
 CON
   CURSOR_ON    = %100
@@ -511,17 +512,17 @@ __names         byte    "res_x", 0
                 byte    "res_m", 0
 
 CON
-  zero    = $1F0                                ' par (dst only)
-  updt    = $1FB                                ' frqb
+  zero  = $1F0                                  ' par (dst only)
+  updt  = $1FB                                  ' frqb
 
-  vpin    = $0FC                                ' pin group mask
-  vgrp    = 2                                   ' pin group
-  sgrp    = 2                                   ' pin group sync
+  vpin  = $0FC                                  ' pin group mask
+  vgrp  = 2                                     ' pin group
+  sgrp  = 2                                     ' pin group sync
 
-  res_x   = 320                                 ' |
-  res_y   = 256                                 ' |
-  res_m   = 4                                   ' UI support
+  res_x = 320                                   ' |
+  res_y = 256                                   ' |
+  res_m = 4                                     ' UI support
 
-  alias   = 0
+  alias = 0
   
 DAT
