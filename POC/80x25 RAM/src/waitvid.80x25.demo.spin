@@ -2,8 +2,8 @@
 '' VGA display 80x25 (dual cog) - demo
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2014/09/20
-''       Version: 0.8
+'' Last modified: 2015/06/15
+''       Version: 0.9
 ''
 CON
   _clkmode = XTAL1|PLL16X
@@ -37,7 +37,7 @@ CON
 
 OBJ
   driver: "waitvid.80x25.driver.2048"
-    font: "halfrange8x16-2font"
+    font: "generic8x16-2font"
   
 VAR
   long  scrn[bcnt_raw / 2]                              ' screen buffer
@@ -54,8 +54,7 @@ PUB selftest : n | c
   driver.init(-1, @link{0})                             ' start driver
 
   repeat bcnt                                           ' fill screen
-    c := frqa++ & 255
-    c := c << 1 | ||(c > 127)
+    c := (frqa++ & 127) << 1
 '
 '   colour format: %FFFF_BBB_A
 '
@@ -68,7 +67,7 @@ PUB selftest : n | c
 PRI redef(c, cdef) : s
 
   repeat s from 0 to 15 step 2
-    word[font.addr][64 * s + c] := byte[cdef][s] << 8 | byte[cdef][s+1]
+    word[font.addr][128 * s + c] := byte[cdef][s] << 8 | byte[cdef][s+1]
     
 PRI printTextAt(x, y, attr, s)
 
@@ -83,8 +82,7 @@ PRI printTextAt(x, y, attr, s)
 PRI printCharAt(x, y, attr, c)
 
   x //= columns                                         ' |
-  y //= rows                                            ' |
-  c  &= 127                                             ' optional
+  y //= rows                                            ' optional
   
   attr.byte[1] := c
   scrn.word[bcnt_raw - y * columns - ++x] := attr 
@@ -95,8 +93,6 @@ PRI printText(attr, s)
     printChar(attr, byte[s++])
       
 PRI printChar(attr, c) | x, y
-
-  c &= 127                                              ' optional
 
   x := cursor.byte[CX]
   y := cursor.byte[CY]

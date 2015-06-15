@@ -2,8 +2,8 @@
 '' VGA display 80x25 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2014/09/26
-''       Version: 0.14
+'' Last modified: 2015/06/15
+''       Version: 0.15
 ''
 '' long[par][0]: vgrp:mode:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer   (4n)
 '' long[par][1]:                [!Z]:addr =      16:16 -> zero (accepted) font descriptor (2n)
@@ -30,6 +30,7 @@
 '' 20140919: cursor, WIP
 '' 20140920: cursor implementation complete
 '' 20140926: added cursor mask constant
+'' 20150615: full character range (9th column is always background)
 ''
 CON
   CURSOR_ON    = %100
@@ -146,7 +147,7 @@ vsync           mov     ecnt, #13+2+(34-2)
 
 :scan           mov     scnt, #16/2/2           ' 16 double scanlines (split between primary and secondary)
                 mov     eins, font              ' font base
-        if_nc   add     eins, #256              ' interleaved
+        if_nc   add     eins, dst1              ' interleaved
 
 :line           mov     vscl, many              ' two lines we don't use
                 waitvid zero, #0                ' 317 hub windows
@@ -156,7 +157,7 @@ vsync           mov     ecnt, #13+2+(34-2)
                 call    #chars                  ' |
                 call    #chars                  ' display scanlines
 
-                add     eins, dst1{256+256}     ' skip 4 lines
+                add     eins, dst2{512+512}     ' skip 4 scanlines
                 djnz    scnt, #:line            ' for all character scanlines
                 sub     zwei, #80*2             ' next row
                 djnz    rows, #:scan            ' for all rows
@@ -363,6 +364,7 @@ locn_           long    $00000008 -12           ' |
 fcnt_           long    $0000000C -12           ' mailbox addresses (local copy)        (##)
 
 dst1            long    1 << 9                  ' dst     +/-= 1
+dst2            long    2 << 9                  ' dst     +/-= 2
 dst4            long    4 << 9                  ' dst     +/-= 4
 d1s1            long    1 << 9  | 1             ' dst/src +/-= 1
 i4s3            long    4 << 23 | 3
