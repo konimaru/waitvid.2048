@@ -45,7 +45,7 @@ PUB init
   longfill(@driver{$00}, 0, 64)                 ' before making DAT public
   longfill(@driver[$C0], 0, 64)
 
-  return @driver
+  return @driver{0}
 
 CON
 '   cmd[8..0]: cog entry address
@@ -158,6 +158,20 @@ args            rdlong  arg0, addr              ' read 1st argument
 
 args_ret        ret
 
+' Stuff below is re-purposed for temporary storage.
+
+setup           mov     ctra, ctr0              ' SPI_CLK
+                mov     ctrb, ctr1              ' SPI_MOSI
+
+                mov     outa, msel              ' not selected
+                max     dira, mask              ' drive outputs/reset
+
+                jmp     #func_3_wait            ' reset, then command loop
+
+ctr0            long    %0_00101_000 << 23 | SPI_CLK << 9 | SPI_IDLE
+ctr1            long    %0_00100_000 << 23 |                SPI_MOSI
+mask            long    SPI_MASK
+
                 long    -1[0 #> ($40 - $)]
 
                 word    %1111111111111111, %1111111111111111, %1111111111111111, %1111111111111111, %0000000000000000, %0000000000000000, %0000000000000000, %0000000000000000
@@ -267,20 +281,6 @@ emit            mov     ccnt, #32
 
 emit_ret        ret
 
-' Stuff below is re-purposed for temporary storage.
-
-setup           mov     ctra, ctr0              ' SPI_CLK
-                mov     ctrb, ctr1              ' SPI_MOSI
-
-                mov     outa, msel              ' not selected
-                max     dira, mask              ' drive outputs/reset
-
-                jmp     #func_3_wait            ' reset, then command loop
-
-ctr0            long    %0_00101_000 << 23 | SPI_CLK << 9 | SPI_IDLE
-ctr1            long    %0_00100_000 << 23 |                SPI_MOSI
-mask            long    SPI_MASK
-
 EOD{ata}        fit
 
 ' uninitialised data and/or temporaries
@@ -306,7 +306,7 @@ bcnt            res     1                       ' bit count
 ccnt            res     1                       ' segment column counter
 scnt            res     1                       ' segment count
 
-tail            fit
+tail            fit     load
 
 EndOfBinary     long    -1[0 #> (256 - (@EndOfBinary - @driver) / 4)]
 
