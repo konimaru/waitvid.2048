@@ -1,11 +1,12 @@
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2015/12/20
-''       Version: 0.8
+'' Last modified: 2016/01/07
+''       Version: 0.11
 ''
 '' 20151214: initial version
 '' 20151215: LSB goes out first
 '' 20151216: added reset function
+'' 20160107: h/w arrived, working
 ''
 VAR
   long  link[res_m]
