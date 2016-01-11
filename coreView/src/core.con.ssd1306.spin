@@ -2,8 +2,8 @@
 '' SSD1306 OLED/PLED driver+controller commands
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2016/01/10
-''       Version: 0.1
+'' Last modified: 2016/01/11
+''       Version: 0.2
 ''
 CON
   SET_CONTRAST                  = $81
@@ -14,9 +14,9 @@ CON
   DISPLAY_OFF                   = $AE
   DISPLAY_ON                    = $AF
 
-  PAM_SET_L_COLUMN              = $00
-  PAM_SET_H_COLUMN              = $10
-  PAM_SET_PAGE                  = $B0
+  PAM_SET_L_COLUMN              = $00   ' |
+  PAM_SET_H_COLUMN              = $10   ' |
+  PAM_SET_PAGE                  = $B0   ' page address mode (PAM) only
   SET_MEMORY_MODE               = $20
   SET_COLUMN_ADDR               = $21
   SET_PAGE_ADDR                 = $22
@@ -29,7 +29,7 @@ CON
   SET_DISPLAY_OFFSET            = $D3
   SET_COM_PINS                  = $DA
 
-  CHARGE_PUMP                   = $8D
+  SET_CHARGE_PUMP               = $8D
   SET_DISPLAY_CLOCK_DIV         = $D5
   SET_PRECHARGE_PERIOD          = $D9
   SET_VCOMH_DESELECT            = $DB
