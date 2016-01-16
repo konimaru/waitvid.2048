@@ -2,8 +2,8 @@
 '' Parallax eBadge LED driver
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2016/01/14
-''       Version: 0.3
+'' Last modified: 2016/01/16
+''       Version: 0.4
 ''
 '' acknowledgements
 '' - code based on work done by Jon McPhalen:
@@ -11,6 +11,7 @@
 ''     jm_ebadge_leds (C) 2015 Jon McPhalen
 ''
 '' 20160112: initial version
+'' 20160116: added pad scanner
 ''
 PUB null
 '' This is not a top level object.
@@ -24,8 +25,11 @@ DAT             org     0
 
 charlie         jmpret  $, #setup               '  -4   once
 
+                shl     scan, #1
+                cmpsub  scan, #|< 6 -1 wc       ' wrap around (64 -> 1)
+                
                 mov     dirx, #0                ' |
-                mov     outx, #0                ' default off
+                mov     outx, pmsk              ' default off (preset pad scanner)
                 
         if_c    movs    ch_0, #blue_tbl +0      ' |
         if_c    movs    ch_1, #blue_tbl +1      ' |
@@ -53,20 +57,41 @@ ch_3    if_c    or      outx, 3-3               ' LED is marked on
                 add     ch_3, #2                ' next table entry
 
 
-                shl     scan, #1
-                cmpsub  scan, #|< 6 -1 wc       ' wrap around (64 -> 1)
-
                 waitcnt cnt, time
 
                 mov     dira, #0                ' avoid ghosting
                 mov     outa, outx              ' |
                 mov     dira, dirx              ' apply new setting
 
+' scan touch pads (if pmsk <> 0)
+
+                add     icnt, #1
+                cmpsub  icnt, #PAD_DCHG wc,wz
+        if_nc   jmp     %%0                     ' neither charge nor sample
+        
+        if_nz   or      dira, pmsk              ' charge pads
+        if_z    mov     ptmp, ina               '  ...  sample pins
+        if_nz   andn    dira, pmsk              ' discharge period starts now
+        if_nz   jmp     %%0                     ' continue
+
+' ptmp holds the pin pattern after discharge period
+
+                mov     icnt, #PAD_DCHG         ' reset charge trigger
+                and     pads, ptmp              ' collect sample                        (##)
+                djnz    ocnt, %%0               ' continue
+
+                and     pads, pmsk              ' only pad pins are of interest
+                xor     pads, pmsk              ' active high
+                wrlong  pads, padr              ' announce current pad state
+
+                mov     ocnt, #PAD_ECNT         ' reset sample count
+                neg     pads, #1                ' reset accumulator                     (##)
+
                 jmp     %%0                     ' ... and again
                 
 ' initialised data and/or presets
 
-scan            long    |< 0                    ' bitmap scanner
+scan            long    |< 5                    ' bitmap scanner
 
 blue_tbl        long    |< BLU_CP2 | |< BLU_CP1, |< BLU_CP1
                 long    |< BLU_CP2 | |< BLU_CP0, |< BLU_CP2
@@ -82,15 +107,24 @@ rgbx_tbl        long    |< RGB_CP2 | |< RGB_CP0, |< RGB_CP2
                 long    |< RGB_CP1 | |< RGB_CP0, |< RGB_CP0
                 long    |< RGB_CP2 | |< RGB_CP1, |< RGB_CP2
 
+padr            long    +4                      ' pad address
+
+pads            long    -1                      ' sample accumulator                    (##)
+pmsk            long    PAD_MASK                ' dis/charge pins
+icnt            long    PAD_DCHG                ' discharge time
+ocnt            long    PAD_ECNT                ' debouncer
+
 ' Stuff below is re-purposed for temporary storage.
 
 setup           rdlong  time, #0                '  +0 = clkfreq                         (%%)
                 shr     time, #11               '  +8   clkfreq / 2048
 
-                mov     cnt, #5{14} + 88
+                add     padr, par               ' finalize local copy
+
+                mov     cnt, #5{14} + 88 + 4
                 add     cnt, cnt                ' first target
 
-                jmpret  zero, %%0 wc,nr         ' carry set
+                jmp     %%0                     ' ret
 
 EOD{ata}        fit
                 
@@ -103,6 +137,8 @@ bmap            res     1                       ' LED pattern
 
 dirx            res     1                       ' |
 outx            res     1                       ' IO under construction
+
+ptmp            res     1                       ' pad sample after discharge period
 
 tail            fit
                         
@@ -127,13 +163,13 @@ CON
 
   PAD_S         = |< 5
 
-  PAD_SW        = |< 15
-  PAD_W         = |< 16
   PAD_NW        = |< 17
+  PAD_W         = |< 16
+  PAD_SW        = |< 15
 
   PAD_MASK      = PAD_NE|PAD_E|PAD_SE|PAD_S|PAD_SW|PAD_W|PAD_NW
 
-  PAD_DCHG      = 586                           ' *clkfreq/2K (about 15ms)
+  PAD_DCHG      = 8                             ' *clkfreq/2K (about 4ms)
   PAD_ECNT      = 16                            ' number of consecutive /equal/ scans
 
 DAT
