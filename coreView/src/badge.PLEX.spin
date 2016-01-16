@@ -3,7 +3,7 @@
 ''
 ''        Author: Marko Lukat
 '' Last modified: 2016/01/16
-''       Version: 0.4
+''       Version: 0.5
 ''
 '' acknowledgements
 '' - code based on work done by Jon McPhalen:
@@ -84,7 +84,7 @@ ch_3    if_c    or      outx, 3-3               ' LED is marked on
                 xor     pads, pmsk              ' active high
                 wrlong  pads, padr              ' announce current pad state
 
-                mov     ocnt, #PAD_ECNT         ' reset sample count
+                mov     ocnt, #PAD_DCNT         ' reset sample count
                 neg     pads, #1                ' reset accumulator                     (##)
 
                 jmp     %%0                     ' ... and again
@@ -112,7 +112,7 @@ padr            long    +4                      ' pad address
 pads            long    -1                      ' sample accumulator                    (##)
 pmsk            long    PAD_MASK                ' dis/charge pins
 icnt            long    PAD_DCHG                ' discharge time
-ocnt            long    PAD_ECNT                ' debouncer
+ocnt            long    PAD_DCNT                ' /idle/ sample count (to register OFF)
 
 ' Stuff below is re-purposed for temporary storage.
 
@@ -169,8 +169,8 @@ CON
 
   PAD_MASK      = PAD_NE|PAD_E|PAD_SE|PAD_S|PAD_SW|PAD_W|PAD_NW
 
-  PAD_DCHG      = 8                             ' *clkfreq/2K (about 4ms)
-  PAD_ECNT      = 16                            ' number of consecutive /equal/ scans
+  PAD_DCHG      = 8                             ' discharge time (n/2K, about 4ms)
+  PAD_DCNT      = 16                            ' /idle/ sample count
 
 DAT
 {{
