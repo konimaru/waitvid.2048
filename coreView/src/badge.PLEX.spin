@@ -44,7 +44,7 @@ CON
   RGB_G1        = |< 12
   RGB_R1        = |< 13
 
-
+CON
   PAD_P0        = |< 27
   PAD_P1        = |< 26
   PAD_P2        = |< 25
