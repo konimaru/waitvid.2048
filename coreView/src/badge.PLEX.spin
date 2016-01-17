@@ -2,17 +2,59 @@
 '' Parallax eBadge LED/PAD driver (#20000, #20100, #20200)
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2016/01/16
-''       Version: 0.5
+'' Last modified: 2016/01/17
+''       Version: 0.6
 ''
 '' acknowledgements
 '' - code based on work done by Jon McPhalen:
 ''   - Charlieplex driver for Parallax Electronic Conference Badge
 ''     jm_ebadge_leds (C) 2015 Jon McPhalen
 ''
+'' long[par][0]: [wr] LEDs: combination of LED_* and RGB_* constants
+'' long[par][1]: [rd] PADs: combination of PAD_* constants
+''
+''                     Layout                                    
+''              --------------------                             
+''      PAD_P5  LED_B5        LED_B0  PAD_P0                     
+''      PAD_P4  LED_B4        LED_B1  PAD_P1                     
+''      PAD_P3  LED_B3        LED_B2  PAD_P2                     
+''              --------------------                                                  
+''              RGB_G1        RGB_G0                             
+''          RGB_R1 RGB_B1  RGB_R0 RGB_B0                         
+''
+''                     PAD_P6
+''
 '' 20160112: initial version
 '' 20160116: added pad scanner
 ''
+CON
+  LED_B0        = |< 0
+  LED_B1        = |< 1
+  LED_B2        = |< 2
+
+  LED_B3        = |< 3
+  LED_B4        = |< 4
+  LED_B5        = |< 5
+
+  RGB_B0        = |< 8
+  RGB_G0        = |< 9
+  RGB_R0        = |< 10
+
+  RGB_B1        = |< 11
+  RGB_G1        = |< 12
+  RGB_R1        = |< 13
+
+
+  PAD_P0        = |< 27
+  PAD_P1        = |< 26
+  PAD_P2        = |< 25
+
+  PAD_P3        = |< 15
+  PAD_P4        = |< 16
+  PAD_P5        = |< 17
+
+  PAD_P6        = |< 5
+
 PUB null
 '' This is not a top level object.
 
@@ -21,7 +63,7 @@ PUB init(ID{ignored}, mailbox)
   ifnot result := cognew(@charlie, mailbox) +1
     abort
 
-DAT             org     0
+DAT             org     0                       ' LED/PAD driver
 
 charlie         jmpret  $, #setup               '  -4   once
 
@@ -157,17 +199,7 @@ CON
   RGB_CP0       = 1                             ' RGBa
 
 
-  PAD_NE        = |< 27
-  PAD_E         = |< 26
-  PAD_SE        = |< 25
-
-  PAD_S         = |< 5
-
-  PAD_NW        = |< 17
-  PAD_W         = |< 16
-  PAD_SW        = |< 15
-
-  PAD_MASK      = PAD_NE|PAD_E|PAD_SE|PAD_S|PAD_SW|PAD_W|PAD_NW
+  PAD_MASK      = PAD_P0|PAD_P1|PAD_P2|PAD_P3|PAD_P4|PAD_P5|PAD_P6
 
   PAD_DCHG      = 8                             ' discharge time (n/2K, about 4ms)
   PAD_DCNT      = 16                            ' /idle/ sample count
