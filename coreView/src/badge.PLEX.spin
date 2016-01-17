@@ -1,5 +1,5 @@
 ''
-'' Parallax eBadge LED driver
+'' Parallax eBadge LED/PAD driver (#20000, #20100, #20200)
 ''
 ''        Author: Marko Lukat
 '' Last modified: 2016/01/16
@@ -91,7 +91,7 @@ ch_3    if_c    or      outx, 3-3               ' LED is marked on
                 
 ' initialised data and/or presets
 
-scan            long    |< 5                    ' bitmap scanner
+scan            long    |< 5                    ' bitmap scanner (1st action is reset)
 
 blue_tbl        long    |< BLU_CP2 | |< BLU_CP1, |< BLU_CP1
                 long    |< BLU_CP2 | |< BLU_CP0, |< BLU_CP2
