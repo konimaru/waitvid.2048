@@ -1,7 +1,7 @@
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2016/01/07
-''       Version: 0.11
+'' Last modified: 2016/01/19
+''       Version: 0.12
 ''
 '' 20151214: initial version
 '' 20151215: LSB goes out first
@@ -42,7 +42,7 @@ PUB init
   ifnot cognew(@driver, @link{0}) +1
     abort
 
-  exec(0, cmd_idle)                             ' make sure cog is running
+  exec(0, cmd_done)                             ' make sure cog is running
   longfill(@driver{$00}, 0, 64)                 ' before making DAT public
   longfill(@driver[$C0], 0, 64)
 
@@ -53,7 +53,7 @@ CON
 '     cmd[12]: command has(1) no(0) arguments
 ' cmd[15..13]: number of arguments -1
 
-  cmd_idle      = %111_0 << 12|$001
+  cmd_done      = %111_0 << 12|$001
   cmd_swap      = %111_0 << 12|$00A
   cmd_cmd1      = %111_0 << 12|$018
   cmd_cmdN      = %001_1 << 12|$019
