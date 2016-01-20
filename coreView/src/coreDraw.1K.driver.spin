@@ -131,7 +131,46 @@ blit_cy         add     hs, arg3                ' lower edge
 ' code performs ys *= wb. The range of ys is configurable during core
 ' initialisation (4/8/12/16bit).
 
-' multiply stuff
+                shl     wb, mshx                ' align operand for 16xNbit
+blit_m          jmpret  $, #$+1 wc,nr           ' clear carry
+
+                rcr     ys, #1 wc
+        if_c    add     ys, wb wc
+                rcr     ys, #1 wc
+        if_c    add     ys, wb wc
+                rcr     ys, #1 wc
+        if_c    add     ys, wb wc
+                rcr     ys, #1 wc
+        if_c    add     ys, wb wc               ' 16x4bit, precision: 16
+
+                rcr     ys, #1 wc
+        if_c    add     ys, wb wc
+                rcr     ys, #1 wc
+        if_c    add     ys, wb wc
+                rcr     ys, #1 wc
+        if_c    add     ys, wb wc
+                rcr     ys, #1 wc
+        if_c    add     ys, wb wc               ' 16x4bit, precision: 16/12
+
+                rcr     ys, #1 wc
+        if_c    add     ys, wb wc
+                rcr     ys, #1 wc
+        if_c    add     ys, wb wc
+                rcr     ys, #1 wc
+        if_c    add     ys, wb wc
+                rcr     ys, #1 wc
+        if_c    add     ys, wb wc               ' 16x4bit, precision: 16/12/8
+
+                rcr     ys, #1 wc
+        if_c    add     ys, wb wc
+                rcr     ys, #1 wc
+        if_c    add     ys, wb wc
+                rcr     ys, #1 wc
+        if_c    add     ys, wb wc
+                rcr     ys, #1 wc
+        if_c    add     ys, wb wc               ' 16x4bit, precision: 16/12/8/4
+
+                shr     wb, mshx                ' restore width
 
 ' Do all the necessary horizontal clipping.
 
@@ -195,10 +234,20 @@ c_y2            long    res_y
 delta           long    %001_0 << 28 | $FFFC    ' %10 deal with movi setup
                                                 ' -(-4) address increment
 argn            long    |< 12                   ' function does have arguments
+mshx            long    16{bit} -1              ' multiplier pre-shift
 
 ' Stuff below is re-purposed for temporary storage.
 
 setup           add     surface, par            ' draw surface location
+
+                rdlong  arg0, surface
+                shr     arg0, #24 -2
+                and     arg0, #%1100            ' 0/4/8/12
+
+                add     blit_m, arg0            ' |
+                add     blit_m, arg0            ' adjust jump
+
+                sub     mshx, arg0              ' adjust pre-shift
 
                 jmp     %%0                     ' return
 
@@ -208,19 +257,18 @@ EOD{ata}        fit
 
                 org     setup
 
-arg0            res     1
-arg1            res     1
-arg2            res     1
-arg3            res     1
-arg4            res     1
-arg5            res     1
-arg6            res     1
-arg7            res     1
+arg0            res     1                       ' |
+arg1            res     1                       ' |
+arg2            res     1                       ' |
+arg3            res     1                       ' |
+arg4            res     1                       ' |
+arg5            res     1                       ' |
+arg6            res     1                       ' |                
+arg7            res     1                       ' command arguments
 
-addr            res     1
-code            res     1
+addr            res     1                       ' parameter pointer   
+code            res     1                       ' function entry point
 
-reuse           res     alias
 
 xs              res     1
 ys              res     1
@@ -232,14 +280,14 @@ wb              res     1
 tail            fit
                 
 CON
-  zero  = $1F0                                  ' par (dst only)
-' func  = $1F4                                  ' outa
+  zero          = $1F0                          ' par (dst only)
+' func          = $1F4                          ' outa
 
-  res_x = 128                                   ' |
-  res_y = 64                                    ' |
-  res_m = 2                                     ' UI support
-  res_a = 8                                     ' max command arguments
+  res_x         = 128                           ' |
+  res_y         = 64                            ' |
+  res_m         = 2                             ' UI support
+  res_a         = 8                             ' max command arguments
 
-  alias = 0
+  alias         = 0
 
 DAT

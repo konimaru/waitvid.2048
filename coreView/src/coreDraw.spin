@@ -13,7 +13,7 @@ VAR
 PUB null
 '' This is not a top level object.
 
-PUB init(surface)
+PUB init(surface{8:*:16})
 
   instruction := -1
   drawsurface := surface
