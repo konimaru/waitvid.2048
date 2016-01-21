@@ -132,7 +132,7 @@ blit_cy         add     hs, arg3                ' lower edge
 ' code performs ys *= wb. The range of ys is configurable during core
 ' initialisation (4/8/12/16bit).
 
-                shl     wb, mshx                ' align operand for 16xNbit
+blit_s          shl     wb, #16{bit} -1         ' align operand for 16xNbit
 blit_m          jmpret  $, #$+1 wc,nr           ' clear carry
 
                 rcr     ys, #1 wc
@@ -171,7 +171,7 @@ blit_m          jmpret  $, #$+1 wc,nr           ' clear carry
                 rcr     ys, #1 wc
         if_c    add     ys, wb wc               ' 16x4bit, precision: 16/12/8/4
 
-                shr     wb, mshx                ' restore width
+                shr     wb, blit_s              ' restore width
 
 ' Do all the necessary horizontal clipping.
 
@@ -235,7 +235,6 @@ c_y2            long    res_y
 delta           long    %001_0 << 28 | $FFFC    ' %10 deal with movi setup
                                                 ' -(-4) address increment
 argn            long    |< 12                   ' function does have arguments
-mshx            long    16{bit} -1              ' multiplier pre-shift
 
 ' Stuff below is re-purposed for temporary storage.
 
@@ -247,8 +246,7 @@ setup           add     surface, par            ' draw surface location
 
                 add     blit_m, arg0            ' |
                 add     blit_m, arg0            ' adjust jump
-
-                sub     mshx, arg0              ' adjust pre-shift
+                sub     blit_s, arg0            ' adjust pre-shift
 
                 jmp     %%0                     ' return
 
