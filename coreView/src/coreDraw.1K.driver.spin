@@ -87,7 +87,8 @@ blit            cmp     arg0, #0 wz
                 add     arg1, #2
 
                 mov     wb, ws                  ' take a copy for final drawing
-                add     wb, #7                  ' |
+                add     wb, #15                 ' |
+                andn    wb, #15                 ' align to 16n
                 shr     wb, #3                  ' byte count (8 px/byte)
 
                 cmp     arg4, #0 wz {multiply?}
