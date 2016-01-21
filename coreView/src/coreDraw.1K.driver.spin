@@ -74,6 +74,8 @@ blit            cmp     arg0, #0 wz
 ' The header is located before the buffer data (negative offsets).
 ' Fetch everything necessary.
 
+                mov     ws, #15                 ' prepare alignment             (==)
+
                 sub     arg1, #6                ' access to header
                 rdword  arg6, arg1              ' frame size in bytes
                 add     arg1, #2
@@ -86,9 +88,8 @@ blit            cmp     arg0, #0 wz
                 rdword  hs, arg1                ' logical frame height
                 add     arg1, #2
 
-                mov     wb, ws                  ' take a copy for final drawing
-                add     wb, #15                 ' |
-                andn    wb, #15                 ' align to 16n
+                add     wb, ws                  ' take a copy for final drawing (==)
+                andn    wb, #15                 ' align to 16n                  (==)
                 shr     wb, #3                  ' byte count (8 px/byte)
 
                 cmp     arg4, #0 wz {multiply?}
