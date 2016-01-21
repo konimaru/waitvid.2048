@@ -4,7 +4,7 @@
 ''       Version: 0.1
 ''
 OBJ
-  driver: "coreDraw.1K.driver"
+  driver: "coreDraw.1K.generic"
   
 VAR
   long  instruction
