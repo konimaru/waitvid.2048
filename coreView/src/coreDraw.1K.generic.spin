@@ -125,7 +125,7 @@ blit_cy         add     hs, arg3                ' lower edge
                 cmps    hs, arg3 wz,wc,wr       ' if lower edge =< y
         if_be   jmp     %%0                     '   early exit
 
-                add     ys, arg3 wz {multiply?} ' ys == 0|c_y1 - y              (##)
+{multiply?}     add     ys, arg3 wz             ' ys == 0|c_y1 - y              (##)
         if_z    jmp     #blit_cx
 
 ' An offset into the source buffer needs to be applied. The following
