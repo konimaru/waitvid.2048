@@ -74,7 +74,7 @@ blit            cmp     arg0, #0 wz
 ' The header is located before the buffer data (negative offsets).
 ' Fetch everything necessary.
 
-                mov     ws, #15                 ' prepare alignment             (==)
+                mov     wb, #15                 ' prepare alignment             (==)
 
                 sub     arg1, #6                ' access to header
                 rdword  arg6, arg1              ' frame size in bytes
