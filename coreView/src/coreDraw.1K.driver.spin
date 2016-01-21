@@ -92,8 +92,7 @@ blit            cmp     arg0, #0 wz
                 andn    wb, #15                 ' align to 16n                  (==)
                 shr     wb, #3                  ' byte count (8 px/byte)
 
-                cmp     arg4, #0 wz {multiply?}
-        if_z    jmp     #blit_cy
+{multiply?}     tjz     arg4, #blit_cy
 
                 shl     arg6, #8 -1             ' align operand for 16x8bit
 
