@@ -1,7 +1,7 @@
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2016/01/20
-''       Version: 0.1
+'' Last modified: 2016/01/22
+''       Version: 0.2
 ''
 PUB null
 '' This is not a top level object.
@@ -194,8 +194,8 @@ blit_cx         add     ws, arg2                ' right edge
                 ror     arg2, #3                ' /8
                 add     arg0, arg2
                 
-                shr     arg2, #29 wc            ' |                                     rol arg2, #3
-                muxc    arg2, #%1000            ' bit index in word (0..15)             and arg2, #%1111
+                shr     arg2, #29 wc            ' |                                     rol ???, #3
+                muxc    arg2, #%1000            ' bit index in word (0..15)             and ???, #%1111
 
 ' src += ys * wb + xs / 8 (byte address)
 
@@ -206,12 +206,94 @@ blit_cx         add     ws, arg2                ' right edge
                 cmp     arg5, #0 wz
         if_ne   add     arg5, ys{*wb}           ' |
         if_ne   add     arg5, xs                ' apply to mask
+                muxnz   mskA, wb                ' 0/wb
 
-                shr     xs, #29 wc              ' |                                     rol xs, #3
-                muxc    xs, #%1000 wz           ' bit index in word (0..15)     (&&)    and xs, #%1111
+                shr     xs, #29 wc              ' |                                     rol ???, #3
+                muxc    xs, #%1000 wz           ' bit index in word (0..15)     (&&)    and ???, #%1111
+                muxz    :jump, #%11             ' select hblit function
+
+' calculate clipping mask update based on length overhead (if zero then carry clear)
+
+                add     ws, xs                  ' avoid calculating (16 - xs)
+'       if_nz   cmp     ws, #8*2 +1 wc          ' all columns from same word    (&&)
+'       if_nz   muxc    :jump, #%01             ' outa vs outb                  (&&)
+
+                mov     arg3, ws
+        if_c    sub     arg3, xs                ' all columns from same word
+                and     arg3, #%1111
+
+                neg     clip, #1
+                shl     clip, arg3              ' create tail window
+
+                mov     arg3, arg2
+        if_a    sub     arg3, xs                '                               (&&)
+        if_a    and     arg3, #%1111            '                               (&&)
+                shl     clip, arg3              ' now aligned with dst
+
+' arg0: r/u c   dst  byte address (xxword OK)
+' arg1: r/u c   src  byte address (xxword OK)
+' arg5: r/u c   mask byte address (xxword OK)
+' arg2: r/o c   dst bit index
+'   xs: r/o     src bit index
+'   ws: r/o c   bit width
+'   hs: r/u     row count
+'   wb: r/o     source width in byte (row advance)
+'
+' arg3: r/w     temporary
+' arg4: r/w     temporary
+' arg6: r/w     temporary
+
+:loop           mov     dstT, arg0              ' |
+                mov     srcT, arg1              ' |
+                mov     mskT, arg5              ' |
+                mov     arg4, ws                ' working copy
+                mov     arg6, arg2              ' |
+
+:jump           jmpret  link, func              ' hblit
+
+                add     arg0, #128/8            ' |
+                add     arg1, wb                ' advance
+                add     arg5, mskA              ' |
+
+                djnz    hs, #:loop              ' for all rows
+
+                jmp     %%0                     ' return
 
 
+fn_11           rdword  dstL, dstT              '  +0 =
+fn_11_loop      add     dstT, #2                '  +8
+                cmp     arg5, #0 wz             '  -4   check masking mode
+                rdword  dstH, dstT              '  +0 =
+                shl     dstH, #16               '  +8
+                or      dstL, dstH              '  -4   extract 32 dst pixel
 
+        if_nz   rdword  mskW, mskT              '  +0 = extract 16 mask bits
+        if_nz   add     mskT, #2                '  +8
+        if_z    mov     mskW, mskF              '  -4   full mask
+
+                rdword  srcW, srcT              '  +0 = extract 16 src pixel
+                add     srcT, #2                '  +8
+                shl     srcW, arg6              '  -4
+                shl     mskW, arg6              '  +0 =
+
+                sub     arg4, #16 wz,wc         '  +4   update/check column count
+        if_b    andn    mskW, clip              '  +8   apply patch for columns < 16
+
+                and     srcW, mskW              '  +0 = clear transparent pixels
+                andn    dstL, mskW              '  +4   make space for src
+                or      dstL, srcW              '  +8   combine dst/src
+
+                sub     dstT, #2                '  -4   rewind
+                wrword  dstL, dstT              '  +0 = update low word
+                shr     dstL, #16               '  +8   dstL := dstH
+                add     dstT, #2                '  -4   advance (again)
+        if_be   wrword  dstL, dstT              '  +0 = update high word (exit path)
+        if_a    jmp     #fn_11_loop             '       for all columns
+
+                jmp     link                    '       return
+
+fn_00
+fn_01
                 jmp     %%0
 
 ' support code (fetch up to 8 arguments)
@@ -262,6 +344,8 @@ c_y2            long    res_y
 delta           long    %001_0 << 28 | $FFFC    ' %10 deal with movi setup
                                                 ' -(-4) address increment
 argn            long    |< 12                   ' function does have arguments
+mskA            long    0                       ' mask pointer advance
+mskF            long    $0000FFFF               ' full mask (all bits)
 
 ' Stuff below is re-purposed for temporary storage.
 
@@ -274,6 +358,10 @@ setup           add     surface, par            ' draw surface location
                 add     blit_m, arg0            ' |
                 add     blit_m, arg0            ' adjust jump
                 sub     blit_s, arg0            ' adjust pre-shift
+
+                movs    func+%00, #fn_00        ' |
+                movs    func+%01, #fn_01        ' |
+                movs    func+%11, #fn_11        ' hblit function setup
 
                 jmp     %%0                     ' return
 
@@ -294,7 +382,7 @@ arg7            res     1                       ' command arguments
 
 addr            res     1                       ' parameter pointer   
 code            res     1                       ' function entry point
-
+link            res     1                       ' return address
 
 xs              res     1
 ys              res     1
@@ -302,12 +390,22 @@ ws              res     1
 hs              res     1
 
 wb              res     1
+clip            res     1
+
+dstT{ransfer}   res     1
+srcT{ransfer}   res     1
+mskT{ransfer}   res     1
+
+dstH{igh}       res     1
+dstL{ow}        res     1
+srcW{ord}       res     1
+mskW{ord}       res     1
 
 tail            fit
                 
 CON
   zero          = $1F0                          ' par (dst only)
-' func          = $1F4                          ' outa
+  func          = $1F4                          ' outa
 
   res_x         = 128                           ' |
   res_y         = 64                            ' |

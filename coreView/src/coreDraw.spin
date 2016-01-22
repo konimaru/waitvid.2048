@@ -1,7 +1,7 @@
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2016/01/20
-''       Version: 0.1
+'' Last modified: 2016/01/21
+''       Version: 0.2
 ''
 OBJ
   driver: "coreDraw.1K.generic"
@@ -22,5 +22,14 @@ PUB init(surface{8:*:16})
 
   repeat
   while instruction                                     ' wait until cog is running
+  
+PUB blit(dst, src, x, y, idx, mask) : cmd
+
+  cmd := driver#cmd_blit
+  cmd.word[1] := @dst
+  instruction := cmd
+
+  repeat
+  while instruction
   
 DAT
