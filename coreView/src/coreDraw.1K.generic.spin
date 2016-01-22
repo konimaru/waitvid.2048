@@ -186,7 +186,7 @@ blit_cx         add     ws, arg2                ' right edge
 
                 add     xs, arg2                ' xs == 0|c_x1 - x              (%%)
 
-' dst += (y * 128 + x) / 4 (byte address)
+' dst += (y * 128 + x) / 8 (byte address)
 
                 shl     arg3, #4                ' *16
                 add     arg0, arg3
@@ -194,8 +194,21 @@ blit_cx         add     ws, arg2                ' right edge
                 ror     arg2, #3                ' /8
                 add     arg0, arg2
                 
-                shr     arg2, #29 wc            ' |                             rol arg2, #3
-                muxc    arg2, #%1000            ' bit index in word (0..15)     and arg2, #%1111
+                shr     arg2, #29 wc            ' |                                     rol arg2, #3
+                muxc    arg2, #%1000            ' bit index in word (0..15)             and arg2, #%1111
+
+' src += ys * wb + xs / 8 (byte address)
+
+                ror     xs, #3                  ' /8
+                add     arg1, ys                ' |
+                add     arg1, xs                ' apply to source
+
+                cmp     arg5, #0 wz
+        if_ne   add     arg5, ys                ' |
+        if_ne   add     arg5, xs                ' apply to mask
+
+                shr     xs, #29 wc              ' |                                     rol xs, #3
+                muxc    xs, #%1000 wz           ' bit index in word (0..15)     (&&)    and xs, #%1111
 
 
 
