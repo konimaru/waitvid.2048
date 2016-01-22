@@ -200,11 +200,11 @@ blit_cx         add     ws, arg2                ' right edge
 ' src += ys * wb + xs / 8 (byte address)
 
                 ror     xs, #3                  ' /8
-                add     arg1, ys                ' |
+                add     arg1, ys{*wb}           ' |
                 add     arg1, xs                ' apply to source
 
                 cmp     arg5, #0 wz
-        if_ne   add     arg5, ys                ' |
+        if_ne   add     arg5, ys{*wb}           ' |
         if_ne   add     arg5, xs                ' apply to mask
 
                 shr     xs, #29 wc              ' |                                     rol xs, #3
