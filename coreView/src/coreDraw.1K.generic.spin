@@ -114,6 +114,8 @@ blit            cmp     arg0, #0 wz
                 rcr     arg4, #1 wc
         if_c    add     arg4, arg6 wc           ' 16x4bit, precision: 8
 
+                cmp     arg5, #0 wz
+        if_ne   add     arg5, arg4              ' |
                 add     arg1, arg4              ' apply offset
 
 ' Do all the necessary vertical clipping.
