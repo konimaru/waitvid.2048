@@ -186,6 +186,18 @@ blit_cx         add     ws, arg2                ' right edge
 
                 add     xs, arg2                ' xs == 0|c_x1 - x              (%%)
 
+' dst += (y * 128 + x) / 4 (byte address)
+
+                shl     arg3, #4                ' *16
+                add     arg0, arg3
+                
+                ror     arg2, #3                ' /8
+                add     arg0, arg2
+                
+                shr     arg2, #29 wc            ' |
+                muxc    arg2, #%1000            ' bit index in word (0..15)
+
+
 
                 jmp     %%0
 
