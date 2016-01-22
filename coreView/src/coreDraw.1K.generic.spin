@@ -194,8 +194,8 @@ blit_cx         add     ws, arg2                ' right edge
                 ror     arg2, #3                ' /8
                 add     arg0, arg2
                 
-                shr     arg2, #29 wc            ' |
-                muxc    arg2, #%1000            ' bit index in word (0..15)
+                shr     arg2, #29 wc            ' |                             rol arg2, #3
+                muxc    arg2, #%1000            ' bit index in word (0..15)     and arg2, #%1111
 
 
 
