@@ -2,8 +2,8 @@
 '' Parallax eBadge LED/PAD driver (#20000, #20100, #20200)
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2016/01/17
-''       Version: 0.6
+'' Last modified: 2016/01/24
+''       Version: 0.7
 ''
 '' acknowledgements
 '' - code based on work done by Jon McPhalen:
@@ -54,6 +54,16 @@ CON
   PAD_P5        = |< 17
 
   PAD_P6        = |< 5
+
+CON
+  BLACK         = %000
+  BLUE          = %001
+  GREEN         = %010
+  CYAN          = %011
+  RED           = %100
+  MAGENTA       = %101
+  YELLOW        = %110
+  WHITE         = %111
 
 PUB null
 '' This is not a top level object.
