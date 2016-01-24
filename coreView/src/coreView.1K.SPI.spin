@@ -1,7 +1,7 @@
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2016/01/19
-''       Version: 0.12
+'' Last modified: 2016/01/24
+''       Version: 0.13
 ''
 '' 20151214: initial version
 '' 20151215: LSB goes out first
@@ -46,7 +46,7 @@ PUB init
   longfill(@driver{$00}, 0, 64)                 ' before making DAT public
   longfill(@driver[$C0], 0, 64)
 
-  return @driver{0}
+  return @driver
 
 CON
 '   cmd[8..0]: cog entry address
