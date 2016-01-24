@@ -7,73 +7,71 @@ CON
   _clkmode = XTAL1|PLL16X
   _xinfreq = 5_000_000
 
-CON
-  PAD_NE        = plex#PAD_P0
-  PAD_E         = plex#PAD_P1
-  PAD_SE        = plex#PAD_P2
-
-  PAD_S         = plex#PAD_P6
-
-  PAD_NW        = plex#PAD_P5
-  PAD_W         = plex#PAD_P4
-  PAD_SW        = plex#PAD_P3
-
 OBJ
   SSD1306: "core.con.ssd1306"
      view: "coreView.1K.SPI"
      draw: "coreDraw"
      plex: "badge.PLEX"
-     tilt: "jm_mma7660fc"
-
-'  serial: "FullDuplexSerial"
+     axis: "jm_mma7660fc"
   
 VAR
   long  surface
   long  LEDs, pads
 
-  long  p[256]
+  long  north, south, orientation
+  long  stack[64]
   
-PUB null : n | m, rgb, switched, i, t
+PUB selftest : n | now
 
   init
 
-  draw.init($02000000|surface)
-  t := cnt
-  repeat n from 128 to -240
-'   longmove(surface, @p{0}, 256)
-    draw.blit(0, @drwuro, n, 0, 0, 0)
-    waitcnt(t += clkfreq/30)
-    view.swap(surface)
+  now := cnt
+  repeat
+    repeat n from view#res_x to -drwuro[SX]
+      draw.blit(0, @drwuro, n, 0, 0, 0)
+      repeat                           
+      until draw.idle                  
+      waitcnt(now += clkfreq/30)
+      view.cmdN(orientation, 2)
+      view.swap(surface)               
 
-  rgb := switched := 0
+PRI bg_0 : n | RGB, switched                            ' background task 0
+
+  RGB := plex#BLUE
+  switched := TRUE
   
   repeat
-    n := 0
-    m := pads
+    if pads & plex#PAD_P0                               ' right side
+      n |= plex#LED_B0
+    if pads & plex#PAD_P1
+      n |= plex#LED_B1
+    if pads & plex#PAD_P2
+      n |= plex#LED_B2   
 
-    if m & PAD_NE
-      n |= 1
-    if m & PAD_E
-      n |= 2
-    if m & PAD_SE
-      n |= 4
+    if pads & plex#PAD_P3                               ' left side
+      n |= plex#LED_B3
+    if pads & plex#PAD_P4
+      n |= plex#LED_B4
+    if pads & plex#PAD_P5
+      n |= plex#LED_B5   
 
-    if m & PAD_SW
-      n |= 8
-    if m & PAD_W
-      n |= 16
-    if m & PAD_NW
-      n |= 32
-
-    if m & PAD_S
-      n |= %001001*rgb << 8
+    if pads & plex#PAD_P6                               ' logo
+      n |= %001001*RGB << 8
       switched := FALSE
     elseifnot switched
-      rgb := (++rgb & 7) #> 1
+      RGB := (++RGB & 7) #> 1
       switched := TRUE
 
-    LEDs := n
-    
+    LEDs := n~                                          ' final LED update
+
+PRI bg_1                                                ' background task 1
+
+  repeat
+    case axis.read_tilt & %000_111_00
+      %000_110_00: orientation := north
+      %000_101_00: orientation := south
+    waitcnt(clkfreq/4 + cnt)
+
 DAT                                                     ' display initialisation sequence
         byte    6
 iseq    byte    SSD1306#SET_MEMORY_MODE, %111111_00     ' horizontal mode
@@ -81,21 +79,37 @@ iseq    byte    SSD1306#SET_MEMORY_MODE, %111111_00     ' horizontal mode
         byte    SSD1306#SET_COM_SCAN_DEC                ' rotate 180 deg
         byte    SSD1306#SET_CHARGE_PUMP, %11_010100     ' no external Vcc
 
-PRI init : n | pt
+PRI init                                                ' driver/task initialisation
 
-  repeat n from 0 to 63
-    pt := lookupz(n & 1: $55555555, $AAAAAAAA)
-    longfill(@p{0}+n*16, pt, 4)
+  plex.init(-1, @LEDs)                                  ' LED/PAD driver
 
-  surface := view.init                                  ' start OLED driver
+  surface := view.init                                  ' OLED driver
+  draw.init($02000000|surface)                          ' drawing library
+
   view.cmdN(@iseq, iseq[-1])                            ' finish setup
   view.swap(surface)                                    ' show initial screen
   view.cmd1(SSD1306#DISPLAY_ON)                         ' display on
 
-  plex.init(-1, @LEDs)                                  ' start LED/PAD driver
+  axis.start(axis#SCL, axis#SDA)                        ' accelerometer
 
-  tilt.start(28, 29)
+' runtime support
 
+  north.word[1] := constant(SSD1306#SET_COM_SCAN_DEC << 8 | SSD1306#SET_SEGMENT_REMAP|1)
+  north.word{0} := @north.word[1]
+
+  south.word[1] := constant(SSD1306#SET_COM_SCAN_INC << 8 | SSD1306#SET_SEGMENT_REMAP|0)
+  south.word{0} := @south.word[1]
+
+  orientation := north                                  ' default orientation
+
+' background tasks
+
+  cognew(bg_0, @stack{$0})                              ' establish PAD/LED link(s)
+  cognew(bg_1, @stack[32])                              ' 3-axis accelerometer
+
+CON
+  #-3, FS, SX, SY                                       ' sprite header indices
+  
 DAT
         word    1920            ' frame size
         word    240, 64         ' width, height
