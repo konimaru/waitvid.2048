@@ -1,7 +1,7 @@
 ''
 ''        Author: Marko Lukat
 '' Last modified: 2016/01/24
-''       Version: 0.3
+''       Version: 0.4
 ''
 '' 20160124: first working version
 ''
@@ -455,6 +455,8 @@ addr            res     1                       ' parameter pointer
 code            res     1                       ' function entry point
 link            res     1                       ' return address
 
+reuse           res     alias
+
 xs              res     1
 ys              res     1
 ws              res     1
@@ -473,6 +475,12 @@ srcW{ord}       res     1
 mskW{ord}       res     1
 
 tail            fit
+
+' aliases (different functions may share VAR space)
+
+                org     reuse
+
+                fit     tail
                 
 CON
   zero          = $1F0                          ' par (dst only)

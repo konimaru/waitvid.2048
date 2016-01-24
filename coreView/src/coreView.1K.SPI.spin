@@ -1,7 +1,7 @@
 ''
 ''        Author: Marko Lukat
 '' Last modified: 2016/01/24
-''       Version: 0.13
+''       Version: 0.14
 ''
 '' 20151214: initial version
 '' 20151215: LSB goes out first
@@ -316,6 +316,8 @@ EndOfBinary     long    -1[0 #> (256 - (@EndOfBinary - @driver) / 4)]
 CON
   zero          = $1F0                          ' par (dst only)
 
+  res_x         = 128                           ' |
+  res_y         = 64                            ' |
   res_m         = 1                             ' UI support
   res_a         = 2                             ' max command arguments
 
