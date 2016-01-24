@@ -1,7 +1,7 @@
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2016/01/20
-''       Version: 0.6
+'' Last modified: 2016/01/24
+''       Version: 0.7
 ''
 CON
   _clkmode = XTAL1|PLL16X
@@ -25,11 +25,13 @@ OBJ
      plex: "badge.PLEX"
      tilt: "jm_mma7660fc"
 
-   serial: "FullDuplexSerial"
+'  serial: "FullDuplexSerial"
   
 VAR
   long  surface
   long  LEDs, pads
+
+  long  p[256]
   
 PUB null : n | m, rgb, switched, i, t
 
@@ -37,40 +39,12 @@ PUB null : n | m, rgb, switched, i, t
 
   draw.init($02000000|surface)
   t := cnt
-'{
-  repeat n from 127 to -32
-    draw.blit(0, @drwuro, n, n/2, 0, 0)
+  repeat n from 128 to -240
+'   longmove(surface, @p{0}, 256)
+    draw.blit(0, @drwuro, n, 0, 0, 0)
     waitcnt(t += clkfreq/30)
     view.swap(surface)
-'}
-  waitpne(0, 0, 0)
 
-{
-  serial.start(31, 30, %0000, 115200)
-  draw.init($02000000|surface)
-  draw.blit($1000, @drwuro, 0, -1, 0, $3000)
-  waitcnt(clkfreq*3 + cnt)
-  serial.tx(0)
-
-  n := $8000
-  repeat 11
-    serial.hex(long[n -= 4], 8)
-    serial.tx(13)
-
-  waitpne(0, 0, 0)
-'}
-  repeat i from 0 to 14
-    m := @drwuro.byte[i]
-    repeat n from 0 to 63
-      bytemove(surface + n << 4, m, 16)
-      m += 30
-    waitcnt(clkfreq/8 + cnt)
-    view.swap(surface)
-{
-  repeat
-    LEDs := tilt.read_tilt
-    waitcnt(clkfreq/8 + cnt)
-}
   rgb := switched := 0
   
   repeat
@@ -107,7 +81,11 @@ iseq    byte    SSD1306#SET_MEMORY_MODE, %111111_00     ' horizontal mode
         byte    SSD1306#SET_COM_SCAN_DEC                ' rotate 180 deg
         byte    SSD1306#SET_CHARGE_PUMP, %11_010100     ' no external Vcc
 
-PRI init
+PRI init : n | pt
+
+  repeat n from 0 to 63
+    pt := lookupz(n & 1: $55555555, $AAAAAAAA)
+    longfill(@p{0}+n*16, pt, 4)
 
   surface := view.init                                  ' start OLED driver
   view.cmdN(@iseq, iseq[-1])                            ' finish setup

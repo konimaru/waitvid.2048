@@ -1,7 +1,9 @@
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2016/01/22
-''       Version: 0.2
+'' Last modified: 2016/01/24
+''       Version: 0.3
+''
+'' 20160124: first working version
 ''
 PUB null
 '' This is not a top level object.
@@ -206,17 +208,20 @@ blit_cx         add     ws, arg2                ' right edge
                 cmp     arg5, #0 wz
         if_ne   add     arg5, ys{*wb}           ' |
         if_ne   add     arg5, xs                ' apply to mask
-                muxnz   mskA, wb                ' 0/wb
+
+                muxnz   mskA, #2                ' 0/2
+                muxnz   mskS, wb                ' 0/wb
+        if_e    movd    arg5, #%00_1000_000     ' fake mask location (all bits)
 
                 shr     xs, #29 wc              ' |                                     rol ???, #3
-                muxc    xs, #%1000 wz           ' bit index in word (0..15)     (&&)    and ???, #%1111
+                muxc    xs, #%1000 wz           ' bit index in word (0..15)     (&&)    and ???, #%1111 wz
                 muxz    :jump, #%11             ' select hblit function
 
 ' calculate clipping mask update based on length overhead (if zero then carry clear)
 
                 add     ws, xs                  ' avoid calculating (16 - xs)
-'       if_nz   cmp     ws, #8*2 +1 wc          ' all columns from same word    (&&)
-'       if_nz   muxc    :jump, #%01             ' outa vs outb                  (&&)
+        if_nz   cmp     ws, #16 +1 wc           ' all columns from same word    (&&)
+        if_nz   muxc    :jump, #%01             ' outa vs outb                  (&&)
 
                 mov     arg3, ws
         if_c    sub     arg3, xs                ' all columns from same word
@@ -237,64 +242,128 @@ blit_cx         add     ws, arg2                ' right edge
 '   xs: r/o     src bit index
 '   ws: r/o c   bit width
 '   hs: r/u     row count
-'   wb: r/o     source width in byte (row advance)
+'   wb: r/o     source width in bytes (row advance)
 '
 ' arg3: r/w     temporary
 ' arg4: r/w     temporary
-' arg6: r/w     temporary
 
 :loop           mov     dstT, arg0              ' |
                 mov     srcT, arg1              ' |
                 mov     mskT, arg5              ' |
+                mov     arg3, arg2              ' |
                 mov     arg4, ws                ' working copy
-                mov     arg6, arg2              ' |
 
 :jump           jmpret  link, func              ' hblit
 
                 add     arg0, #128/8            ' |
-                add     arg1, wb                ' advance
-                add     arg5, mskA              ' |
+                add     arg1, wb                ' |
+                add     arg5, mskS{tride}       ' advance
 
                 djnz    hs, #:loop              ' for all rows
 
                 jmp     %%0                     ' return
 
 
-fn_11           rdword  dstL, dstT              '  +0 =
-fn_11_loop      add     dstT, #2                '  +8
-                cmp     arg5, #0 wz             '  -4   check masking mode
+fn_01           rdword  dstL, dstT              '  +0 =
+                add     dstT, #2                '  +8
+                cmp     arg4, #16 wz,wc         '  -4   check column count
                 rdword  dstH, dstT              '  +0 =
                 shl     dstH, #16               '  +8
                 or      dstL, dstH              '  -4   extract 32 dst pixel
 
-        if_nz   rdword  mskW, mskT              '  +0 = extract 16 mask bits
-        if_nz   add     mskT, #2                '  +8
-        if_z    mov     mskW, mskF              '  -4   full mask
+                rdword  mskW, mskT              '  +0 = extract 16 mask bits
+                shr     mskW, xs                '  +8   xs <> 0, mskT advance n/a
+                shl     mskW, arg3              '  -4   align with dst
 
                 rdword  srcW, srcT              '  +0 = extract 16 src pixel
-                add     srcT, #2                '  +8
-                shl     srcW, arg6              '  -4
-                shl     mskW, arg6              '  +0 =
+                shr     srcW, xs                '  +8   xs <> 0, srcT advance n/a
+                shl     srcW, arg3              '  -4   align with dst
 
-                sub     arg4, #16 wz,wc         '  +4   update/check column count
-        if_b    andn    mskW, clip              '  +8   apply patch for columns < 16
+        if_b    andn    mskW, clip              '  +0 = apply patch for columns
+        
+                and     srcW, mskW              '  +4   clear transparent pixels
+                andn    dstL, mskW              '  +8   make space for src
+                or      dstL, srcW              '  -4   combine dst/src
 
-                and     srcW, mskW              '  +0 = clear transparent pixels
-                andn    dstL, mskW              '  +4   make space for src
-                or      dstL, srcW              '  +8   combine dst/src
+                shr     mskW, #16 wz            '  +0 = check for high word change
+                muxnz   :p11, mskF              '  +4   if_be/if_never
+                cmp     arg4, #16 wz,wc         '  +8   check column count (restore flags)
 
                 sub     dstT, #2                '  -4   rewind
                 wrword  dstL, dstT              '  +0 = update low word
                 shr     dstL, #16               '  +8   dstL := dstH
                 add     dstT, #2                '  -4   advance (again)
-        if_be   wrword  dstL, dstT              '  +0 = update high word (exit path)
-        if_a    jmp     #fn_11_loop             '       for all columns
+:p11    if_be   wrword  dstL, dstT              '  +0 = update high word
 
                 jmp     link                    '       return
 
-fn_00
-fn_01
-                jmp     %%0
+
+fn_00           rdword  dstL, dstT              '  +0 =
+                add     dstT, #2                '  +8
+                sub     arg4, #16               '  -4   update column count
+                rdword  dstH, dstT              '  +0 =
+                shl     dstH, #16               '  +8
+                or      dstL, dstH              '  -4   extract 32 dst pixel
+
+                rdword  mskW, mskT              '  +0 = extract 16 mask bits
+                add     mskT, mskA{dvance}      '  +8   0/2
+                shr     mskW, xs                '  -4   xs <> 0
+
+                rdword  srcW, srcT              '  +0 = extract 16 src pixel
+                add     srcT, #2                '  +8
+                shr     srcW, xs                '  -4   xs <> 0
+
+                shl     srcW, arg3              '  +0 = |
+                shl     mskW, arg3              '  +4   align with dst
+
+                and     srcW, mskW              '  +8   clear transparent pixels
+                andn    dstL, mskW              '  -4   make space for src
+                or      dstL, srcW              '  +0 = combine dst/src
+
+                shr     mskW, #16 wz            '  +4   check for high word change
+                muxnz   fn_11_exit, mskF        '  +8   if_be/if_never
+
+                sub     arg3, xs wc             '  -4
+                and     arg3, #%1111            '  +0 = adjust dst bit index
+        if_nc   jmp     #fn_11_tail wz          '  +4   business as usual (flags: above)
+
+                cmp     arg4, #16 wz,wc         '  +8   check column count
+                jmp     #fn_11_next             '  -4   gap in dstL
+
+
+fn_11           rdword  dstL, dstT              '  +0 =
+fn_11_loop      add     dstT, #2                '  +8
+                cmp     arg4, #16 wz,wc         '  -4   check column count
+                rdword  dstH, dstT              '  +0 =
+                shl     dstH, #16               '  +8
+                or      dstL, dstH              '  -4   extract 32 dst pixel
+
+fn_11_next      rdword  mskW, mskT              '  +0 = extract 16 mask bits
+                add     mskT, mskA{dvance}      '  +8   0/2
+                shl     mskW, arg3              '  -4   align with dst
+
+                rdword  srcW, srcT              '  +0 = extract 16 src pixel
+                add     srcT, #2                '  +8
+                shl     srcW, arg3              '  -4   align with dst
+
+        if_b    andn    mskW, clip              '  +0 = apply patch for columns < 16
+
+                and     srcW, mskW              '  +4   clear transparent pixels
+                andn    dstL, mskW              '  +8   make space for src
+                or      dstL, srcW              '  -4   combine dst/src
+
+                shr     mskW, #16 wz            '  +0 = check for high word change
+                muxnz   fn_11_exit, mskF        '  +4   if_be/if_never
+                sub     arg4, #16 wz,wc         '  +8   update column count (restore flags)
+
+fn_11_tail      sub     dstT, #2                '  -4   rewind
+                wrword  dstL, dstT              '  +0 = update low word
+                shr     dstL, #16               '  +8   dstL := dstH
+                add     dstT, #2                '  -4   advance (again)
+fn_11_exit      wrword  dstL, dstT              '  +0 = update high word (exit path, optional)
+        if_a    jmp     #fn_11_loop             '       for all columns
+
+                jmp     link                    '       return
 
 ' support code (fetch up to 8 arguments)
 
@@ -344,8 +413,10 @@ c_y2            long    res_y
 delta           long    %001_0 << 28 | $FFFC    ' %10 deal with movi setup
                                                 ' -(-4) address increment
 argn            long    |< 12                   ' function does have arguments
-mskA            long    0                       ' mask pointer advance
-mskF            long    $0000FFFF               ' full mask (all bits)
+
+mskA            long    0{/2}                   ' mask transfer advance
+mskS            long    0{/wb}                  ' mask stride
+mskF            long    %1110 << 18             ' if_be (c|z)
 
 ' Stuff below is re-purposed for temporary storage.
 
@@ -406,7 +477,7 @@ tail            fit
 CON
   zero          = $1F0                          ' par (dst only)
   func          = $1F4                          ' outa
-
+  
   res_x         = 128                           ' |
   res_y         = 64                            ' |
   res_m         = 2                             ' UI support
