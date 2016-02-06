@@ -2,8 +2,8 @@
 '' SSD1306 OLED/PLED driver+controller commands
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2016/01/11
-''       Version: 0.2
+'' Last modified: 2016/02/06
+''       Version: 0.3
 ''
 CON
   SET_CONTRAST                  = $81
@@ -13,6 +13,9 @@ CON
   DISPLAY_INVERTED              = $A7
   DISPLAY_OFF                   = $AE
   DISPLAY_ON                    = $AF
+
+  DISPLAY_FADE_OUT              = $23
+  DISPLAY_ZOOM_IN               = $D6
 
   PAM_SET_L_COLUMN              = $00   ' |
   PAM_SET_H_COLUMN              = $10   ' |
