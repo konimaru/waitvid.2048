@@ -1,7 +1,7 @@
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2016/01/24
-''       Version: 0.7
+'' Last modified: 2016/02/06
+''       Version: 0.8
 ''
 CON
   _clkmode = XTAL1|PLL16X
@@ -9,7 +9,6 @@ CON
 
 OBJ
   SSD1306: "core.con.ssd1306"
-     view: "coreView.1K.SPI"
      draw: "coreDraw"
      plex: "badge.PLEX"
      axis: "jm_mma7660fc"
@@ -27,13 +26,13 @@ PUB selftest : n | now
 
   now := cnt
   repeat
-    repeat n from view#res_x to -drwuro[SX]
+    repeat n from draw#res_x to -drwuro[SX]
       draw.blit(0, @drwuro, n, 0, 0, 0)
       repeat                           
       until draw.idle                  
       waitcnt(now += clkfreq/30)
-      view.cmdN(orientation, 2)
-      view.swap(surface)               
+      draw.cmdN(orientation, 2)
+      draw.swap(0)                     
 
 PRI bg_0 : n | RGB, switched                            ' background task 0
 
@@ -73,22 +72,22 @@ PRI bg_1                                                ' background task 1
     waitcnt(clkfreq/4 + cnt)
 
 DAT                                                     ' display initialisation sequence
-        byte    6
+        byte    8
 iseq    byte    SSD1306#SET_MEMORY_MODE, %111111_00     ' horizontal mode
         byte    SSD1306#SET_SEGMENT_REMAP|1             ' |
         byte    SSD1306#SET_COM_SCAN_DEC                ' rotate 180 deg
+        byte    SSD1306#SET_PRECHARGE_PERIOD, $F1       ' dis/charge 1/15
         byte    SSD1306#SET_CHARGE_PUMP, %11_010100     ' no external Vcc
 
 PRI init                                                ' driver/task initialisation
 
   plex.init(-1, @LEDs)                                  ' LED/PAD driver
 
-  surface := view.init                                  ' OLED driver
-  draw.init($02000000|surface)                          ' drawing library
+  surface := draw.init($02_00_0000)                     ' drawing library and OLED driver
 
-  view.cmdN(@iseq, iseq[-1])                            ' finish setup
-  view.swap(surface)                                    ' show initial screen
-  view.cmd1(SSD1306#DISPLAY_ON)                         ' display on
+  draw.cmdN(@iseq, iseq[-1])                            ' finish setup
+  draw.swap(0)                                          ' show initial screen
+  draw.cmd1(SSD1306#DISPLAY_ON)                         ' display on
 
   axis.start(axis#SCL, axis#SDA)                        ' accelerometer
 
