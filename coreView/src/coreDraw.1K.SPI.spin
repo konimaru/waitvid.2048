@@ -34,9 +34,9 @@ CON
   cmd_blit      = %101_1 << 12|$017
 
   cmd_swap      = %111_0 << 12|$0DF
-  cmd_cmd1      = %111_0 << 12|$0ED
-  cmd_cmdN      = %001_1 << 12|$0EE
-  cmd_boot      = %111_0 << 12|$0FC
+  cmd_cmd1      = %111_0 << 12|$0EF
+  cmd_cmdN      = %001_1 << 12|$0F0
+  cmd_boot      = %111_0 << 12|$0FE
 
 DAT             org     0                       ' graphics/display driver
 
@@ -384,7 +384,10 @@ fn_11_exit      wrword  dstL, dstT              '  +0 = update high word (exit p
 
 ' transfer hub buffer to display
 
-func_0          mov     scnt, #31               ' number of segments -1
+func_0          shl     addr, #16 wz,nr
+        if_e    rdword  addr, surface           ' draw surface
+
+                mov     scnt, #31               ' number of segments -1
 
                 or      outa, mdnc              ' data mode
                 andn    outa, msel              ' active
