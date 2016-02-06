@@ -1,10 +1,14 @@
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2016/01/24
-''       Version: 0.3
+'' Last modified: 2016/02/06
+''       Version: 0.4
 ''
+CON
+  res_x         = driver#res_x
+  res_y         = driver#res_y
+
 OBJ
-  driver: "coreDraw.1K.generic"
+  driver: "coreDraw.1K.SPI"
   
 VAR
   long  instruction
@@ -49,10 +53,35 @@ PUB init(surface{8:*:16})
   instruction := -1
   drawsurface := surface
   
-  result := driver.init(-1, @instruction)
+  driver.init(-1, @instruction)
 
   longfill(@cmd_blit, @parameters{0} << 16, 2)          ' set parameter buffer
   cmd_blit |= driver#cmd_blit                           ' |
   cmd_clip |= driver#cmd_clip                           ' add command code(s)
+
+  return drawsurface
+  
+PRI exec(args, command)                                 ' composite mode
+
+  command.word[1] := args
+  instruction := command
+  repeat
+  while instruction
+
+PUB swap(surface)                                       ' composite mode
+
+  exec(surface, driver#cmd_swap)
+
+PUB cmd1(command)                                       ' composite mode
+
+  exec(command, driver#cmd_cmd1)
+  
+PUB cmdN(buffer, count)                                 ' composite mode
+
+  exec(@buffer, driver#cmd_cmdN)
+  
+PUB boot                                                ' composite mode
+
+  exec(0, driver#cmd_boot)
   
 DAT
