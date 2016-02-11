@@ -383,6 +383,8 @@ fn_11_exit      wrword  dstL, dstT              '  +0 = update high word (exit p
                 jmp     link                    '       return
 
 ' COMPOSITE: transfer hub buffer to display
+' ------------------------------------------------------
+' parameters:   addr: surface buffer (1K)
 
 func_0          shl     addr, #16 wz,nr
         if_e    rdword  addr, surface           ' draw surface
@@ -409,12 +411,17 @@ func_0          shl     addr, #16 wz,nr
                 jmp     %%0                     ' return
 
 ' COMPOSITE: send single byte command to display
+' ------------------------------------------------------
+' parameters:   addr: command
 
 func_1          mov     phsb, addr
 
 '               carry clear (no arguments)
 
 ' COMPOSITE: send multi byte command to display
+' ------------------------------------------------------
+' parameters:   arg0: pointer to command sequence
+'               arg1: length of sequence
 
 func_2          andn    outa, mdnc              ' command mode
                 andn    outa, msel              ' active
@@ -437,6 +444,8 @@ func_2          andn    outa, mdnc              ' command mode
                 jmp     %%0                     ' return
 
 ' COMPOSITE: reset display h/w (min 3us, 240 clocks @80MHz)
+' ------------------------------------------------------
+' parameters:   none
 
 func_3          andn    outa, mres              ' hard reset
 
