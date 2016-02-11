@@ -1,7 +1,7 @@
 ''
 ''        Author: Marko Lukat
 '' Last modified: 2016/02/11
-''       Version: 0.9
+''       Version: 0.10
 ''
 CON
   _clkmode = client#_clkmode
@@ -18,7 +18,7 @@ VAR
   long  surface
   long  LEDs, pads
 
-  long  tzyx, orientation, north, south
+  long  tzyx, orientation, up, down
   long  stack[64]
   
 PUB selftest : n | now
@@ -82,17 +82,17 @@ PRI init                                                ' driver/task initialisa
   draw.swap(0)                                          ' show initial screen
   draw.cmd1(SSD1306#DISPLAY_ON)                         ' display on
 
-  util.init(client#SCL, client#SDA, @tzyx, $040C0408)   ' accelerometer and EEPROM
+  util.init(client#SCL, client#SDA, @tzyx, $04040C08)   ' accelerometer and EEPROM
 
 ' runtime support
 
-  north.word[1] := constant(SSD1306#SET_COM_SCAN_DEC << 8 | SSD1306#SET_SEGMENT_REMAP|1)
-  north.word{0} := @north.word[1]
+  up.word[1]   := constant(SSD1306#SET_COM_SCAN_DEC << 8 | SSD1306#SET_SEGMENT_REMAP|1)
+  up.word{0}   := @up.word[1]
 
-  south.word[1] := constant(SSD1306#SET_COM_SCAN_INC << 8 | SSD1306#SET_SEGMENT_REMAP|0)
-  south.word{0} := @south.word[1]
+  down.word[1] := constant(SSD1306#SET_COM_SCAN_INC << 8 | SSD1306#SET_SEGMENT_REMAP|0)
+  down.word{0} := @down.word[1]
 
-  orientation := north                                  ' default orientation
+  orientation  := up                                    ' default orientation
 
 ' background tasks
 
