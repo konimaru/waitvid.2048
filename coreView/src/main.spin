@@ -1,23 +1,24 @@
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2016/02/06
-''       Version: 0.8
+'' Last modified: 2016/02/11
+''       Version: 0.9
 ''
 CON
-  _clkmode = XTAL1|PLL16X
-  _xinfreq = 5_000_000
+  _clkmode = client#_clkmode
+  _xinfreq = client#_xinfreq
 
 OBJ
   SSD1306: "core.con.ssd1306"
+   client: "core.con.client.badge"
      draw: "coreDraw"
      plex: "badge.PLEX"
-     axis: "jm_mma7660fc"
-  
+     util: "badge.UTIL"
+     
 VAR
   long  surface
   long  LEDs, pads
 
-  long  north, south, orientation
+  long  tzyx, orientation, north, south
   long  stack[64]
   
 PUB selftest : n | now
@@ -63,14 +64,6 @@ PRI bg_0 : n | RGB, switched                            ' background task 0
 
     LEDs := n~                                          ' final LED update
 
-PRI bg_1                                                ' background task 1
-
-  repeat
-    case axis.read_tilt & %000_111_00
-      %000_110_00: orientation := north
-      %000_101_00: orientation := south
-    waitcnt(clkfreq/4 + cnt)
-
 DAT                                                     ' display initialisation sequence
         byte    8
 iseq    byte    SSD1306#SET_MEMORY_MODE, %111111_00     ' horizontal mode
@@ -89,7 +82,7 @@ PRI init                                                ' driver/task initialisa
   draw.swap(0)                                          ' show initial screen
   draw.cmd1(SSD1306#DISPLAY_ON)                         ' display on
 
-  axis.start(axis#SCL, axis#SDA)                        ' accelerometer
+  util.init(client#SCL, client#SDA, @tzyx, $040C0408)   ' accelerometer and EEPROM
 
 ' runtime support
 
@@ -104,7 +97,6 @@ PRI init                                                ' driver/task initialisa
 ' background tasks
 
   cognew(bg_0, @stack{$0})                              ' establish PAD/LED link(s)
-  cognew(bg_1, @stack[32])                              ' 3-axis accelerometer
 
 CON
   #-3, FS, SX, SY                                       ' sprite header indices
