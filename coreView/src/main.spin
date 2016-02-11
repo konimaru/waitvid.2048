@@ -19,7 +19,7 @@ VAR
   long  LEDs, pads
 
   long  tzyx, orientation, up, down
-  long  stack[64]
+  long  stack[32]
   
 PUB selftest : n | now
 
