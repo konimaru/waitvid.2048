@@ -21,8 +21,8 @@ PUB init(SCL, SDA, base, layout) : n
   tzyx        := base
   orientation := base + 4
 
-  repeat 4
-    up[n++] := base + layout.byte[n]
+  repeat n from 0 to 3
+    up[n] := base + layout.byte[n]
 
   cognew(task, @stack{0})
   

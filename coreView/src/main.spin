@@ -7,9 +7,21 @@ CON
   _clkmode = client#_clkmode
   _xinfreq = client#_xinfreq
 
+CON
+  AUDIO_L  = client#AUDIO_L
+  AUDIO_R  = client#AUDIO_R
+
+  SCL      = client#SCL
+  SDA      = client#SDA
+
 OBJ
   SSD1306: "core.con.ssd1306"
    client: "core.con.client.badge"
+
+   sidcog: "SIDcog"
+     core: "6502"
+     math: "umath.mod"
+
      draw: "coreDraw"
      plex: "badge.PLEX"
      util: "badge.UTIL"
@@ -82,7 +94,7 @@ PRI init                                                ' driver/task initialisa
   draw.swap(0)                                          ' show initial screen
   draw.cmd1(SSD1306#DISPLAY_ON)                         ' display on
 
-  util.init(client#SCL, client#SDA, @tzyx, $04040C08)   ' accelerometer and EEPROM
+  util.init(SCL, SDA, @tzyx, $04040C08)                 ' accelerometer and EEPROM
 
 ' runtime support
 
