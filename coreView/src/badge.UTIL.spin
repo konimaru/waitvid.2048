@@ -8,7 +8,7 @@ OBJ
   util: "jm_mma7660fc"
   
 VAR
-  long  tzyx, orientation, up, down, right, left
+  long  xyzt, orientation, up, down, right, left
   long  stack[32]
   
 PUB null
@@ -18,7 +18,7 @@ PUB init(SCL, SDA, base, layout) : n
 
   util.start(SCL, SDA{, 400_000})
   
-  tzyx        := base
+  xyzt        := base
   orientation := base + 4
 
   repeat n from 0 to 3
@@ -29,8 +29,8 @@ PUB init(SCL, SDA, base, layout) : n
 PRI task
 
   repeat
-    util.read_all_raw(tzyx)
-    case byte[tzyx][3] & %000_111_00
+    util.read_all_raw(xyzt)
+    case byte[xyzt][3] & %000_111_00
       %000_110_00: long[orientation] := long[up]
       %000_101_00: long[orientation] := long[down]
       %000_010_00: long[orientation] := long[right]
