@@ -30,7 +30,7 @@ VAR
   long  surface
   long  LEDs, pads
 
-  long  tzyx, orientation, up, down
+  long  xyzt, orientation, up, down
   long  stack[32]
   
 PUB selftest : n | now
@@ -94,7 +94,7 @@ PRI init                                                ' driver/task initialisa
   draw.swap(0)                                          ' show initial screen
   draw.cmd1(SSD1306#DISPLAY_ON)                         ' display on
 
-  util.init(SCL, SDA, @tzyx, $04040C08)                 ' accelerometer and EEPROM
+  util.init(SCL, SDA, @xyzt, $04040C08)                 ' accelerometer and EEPROM
 
 ' runtime support
 
