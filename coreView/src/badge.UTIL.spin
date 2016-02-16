@@ -1,7 +1,10 @@
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2016/02/15
-''       Version: 0.4
+'' Last modified: 2016/02/16
+''       Version: 0.5
+''
+'' acknowledgements
+'' - MMA7660FC 3-Axis accelerometer interface, Copyright (C) 2015 Jon McPhalen
 ''
 CON
   res_m         = T_END                                 ' UI support
@@ -11,22 +14,22 @@ CON
   T_BLK         = 2048
 
 OBJ
-' util: "I2C PASM driver v1.8od"
-  util: "jm_mma7660fc"
+  axis: "core.con.mma7660fc"
+  util: "I2C PASM driver v1.8od"
   
 VAR
   long  lock, transfers[8], head, tail
   long  xyzt, orientation, up, down, right, left
 
-  long  stack[32]
+  long  stack[64]
   
 PUB null
 '' This is not a top level object.
 
 PUB init(SCL, SDA, base, layout) : n
 
-  util.start(SCL, SDA{, 400_000})                       ' start driver
-  
+  util.start(SCL, SDA, 400_000)                         ' start driver
+
   xyzt        := base                                   ' |
   orientation := base + 4                               ' locations for raw/custom values
 
@@ -44,7 +47,7 @@ PUB bget(transfer, dst, src, length, wait{boolean})
   while lockset(lock)                                   ' acquire lock
 
   transfers[head++] := transfer                         ' record transfer
-  head &= 3                                             ' (there is at most one transfer per client)
+  head &= 7                                             ' (there is at most one transfer per client)
 
   lockclr(lock)                                         ' release lock
 
@@ -56,17 +59,29 @@ PUB complete(transfer)
 
   return not long[transfer][T_LEN]                      ' transfer size 0 -> done
   
-PRI task : mark | transfer, length
+PRI task : length | mark, transfer, value
 
+  util.writeByte(axis#ID, axis#MODE,  $00)              ' stand-by
+  util.writeByte(axis#ID, axis#INTSU, $00)              ' no interrupts
+  util.writeByte(axis#ID, axis#SR,    $00)              ' 120 sps
+  util.writeByte(axis#ID, axis#PDET,  $6C)              ' tap detect on Z, threshold = 12
+  util.writeByte(axis#ID, axis#PD,    $08)              ' tap debounce count           
+  util.writeByte(axis#ID, axis#MODE,  $C1)              ' active, int pin is push-pull active-high
+  
   mark := cnt
 
   repeat
-    util.read_all_raw(xyzt)
-    case byte[xyzt][3] & %000_111_00
-      %000_110_00: long[orientation] := long[up]
-      %000_101_00: long[orientation] := long[down]
-      %000_010_00: long[orientation] := long[right]
-      %000_001_00: long[orientation] := long[left]
+    repeat
+      util.readBytes(axis#ID, axis#XOUT, @value, 4)     ' 4 bytes starting at XOUT
+    while value & axis#ALERT_XYZT                       ' monitor alert bits
+
+    long[xyzt] := value                                 ' set acceleration and tilt
+
+    case byte[xyzt][3] & %000_111_00                    ' |
+      %000_110_00: long[orientation] := long[up]        ' |
+      %000_101_00: long[orientation] := long[down]      ' custom mapping for tilt values
+      %000_010_00: long[orientation] := long[right]     ' |
+      %000_001_00: long[orientation] := long[left]      ' |
 
     repeat                                                        
       if tail <> head                                   ' transfers available
@@ -75,8 +90,7 @@ PRI task : mark | transfer, length
         ifnot long[transfer][T_LEN] -= length := long[transfer][T_LEN] <# T_BLK
           tail := (tail + 1) & 7                        ' remove transfer
                                                                   
-'       uti2.readBytes(uti2#EEPROM, long[transfer][T_SRC], long[transfer][T_DST], length)
-'       read(long[transfer][T_DST], long[transfer][T_SRC], length)
+'       util.readBytes(util#EEPROM, long[transfer][T_SRC], long[transfer][T_DST], length)
                                                                   
         long[transfer][T_DST] += length                 ' |       
         long[transfer][T_SRC] += length                 ' update remaining transfer
