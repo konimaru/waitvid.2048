@@ -1,4 +1,6 @@
 ''
+'' Parallax eBadge I2C high level device handler
+''
 ''        Author: Marko Lukat
 '' Last modified: 2016/02/16
 ''       Version: 0.5
