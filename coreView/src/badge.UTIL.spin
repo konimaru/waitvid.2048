@@ -7,6 +7,7 @@
 ''
 '' acknowledgements
 '' - MMA7660FC 3-Axis accelerometer interface, Copyright (C) 2015 Jon McPhalen
+'' - I2C open-drain PASM driver 1.8od, Copyright (c) 2014 Chris Gadd
 ''
 CON
   res_m         = T_END                                 ' UI support
