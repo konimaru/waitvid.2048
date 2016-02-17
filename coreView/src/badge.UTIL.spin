@@ -2,8 +2,8 @@
 '' Parallax eBadge I2C high level device handler
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2016/02/16
-''       Version: 0.5
+'' Last modified: 2016/02/17
+''       Version: 0.6
 ''
 '' acknowledgements
 '' - MMA7660FC 3-Axis accelerometer interface, Copyright (C) 2015 Jon McPhalen
@@ -12,11 +12,10 @@ CON
   res_m         = T_END                                 ' UI support
 
   #0, T_DST, T_SRC, T_LEN, T_END
-
-  T_BLK         = 2048
-
+  
 OBJ
   axis: "core.con.mma7660fc"
+  prom: "core.con.eeprom"
   util: "I2C PASM driver v1.8od"
   
 VAR
@@ -41,9 +40,7 @@ PUB init(SCL, SDA, base, layout) : n
   lock := locknew                                       ' reserve lock
   cognew(task, @stack{0})                               ' start helper task
   
-PUB bget(transfer, dst, src, length, wait{boolean})
-
-  longmove(transfer, @dst, 3)                           ' setup transfer
+PUB bget(transfer, wait{boolean})
 
   repeat
   while lockset(lock)                                   ' acquire lock
@@ -57,6 +54,14 @@ PUB bget(transfer, dst, src, length, wait{boolean})
     repeat
     while long[transfer][T_LEN]                         ' wait for completion
     
+PUB read(dst, src, length)
+
+  return bget(@dst, TRUE)                               ' synchronous read
+  
+PUB reada(transfer)
+
+  return bget(transfer, FALSE)                          ' asynchronous read
+  
 PUB complete(transfer)
 
   return not long[transfer][T_LEN]                      ' transfer size 0 -> done
@@ -89,13 +94,13 @@ PRI task : length | mark, transfer, value
       if tail <> head                                   ' transfers available
         transfer := transfers[tail]                     ' grab active transfer
 
-        ifnot long[transfer][T_LEN] -= length := long[transfer][T_LEN] <# T_BLK
+        ifnot long[transfer][T_LEN] -= length := long[transfer][T_LEN] <# 2048
           tail := (tail + 1) & 7                        ' remove transfer
                                                                   
-'       util.readBytes(util#EEPROM, long[transfer][T_SRC], long[transfer][T_DST], length)
+        util.readBytes(prom#ID, long[transfer][T_SRC], long[transfer][T_DST], length)
                                                                   
         long[transfer][T_DST] += length                 ' |       
-        long[transfer][T_SRC] += length                 ' update remaining transfer
+        long[transfer][T_SRC] += length                 ' update transfer
     while (cnt - mark) < clkfreq >> 2                             
                                                                   
     mark += clkfreq >> 2                                          
