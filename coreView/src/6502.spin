@@ -1,11 +1,11 @@
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2016/01/28
-''       Version: 0.28
+'' Last modified: 2016/02/18
+''       Version: 0.29
 ''
 '' acknowledgements
-'' - 6502 CORE (C) 2009-10-07 Eric Ball
-'' - 6502 Emulator Copyright (C) Eric Ball and Darryl Biggar
+'' - 6502 CORE (c) 2009-10-07 Eric Ball
+'' - 6502 Emulator Copyright (c) Eric Ball and Darryl Biggar
 ''
 '' ToDo: - ADC/SBC decimal mode
 ''
