@@ -8,7 +8,7 @@
 '' acknowledgements
 '' - code based on work done by Jon McPhalen:
 ''   - Charlieplex driver for Parallax Electronic Conference Badge
-''     jm_ebadge_leds (C) 2015 Jon McPhalen
+''     jm_ebadge_leds (c) 2015 Jon McPhalen
 ''
 '' long[par][0]: [wr] LEDs: combination of LED_* and RGB_* constants
 '' long[par][1]: [rd] PADs: combination of PAD_* constants
