@@ -6,7 +6,7 @@
 ''       Version: 0.6
 ''
 '' acknowledgements
-'' - MMA7660FC 3-Axis accelerometer interface, Copyright (C) 2015 Jon McPhalen
+'' - MMA7660FC 3-Axis accelerometer interface, Copyright (c) 2015 Jon McPhalen
 '' - I2C open-drain PASM driver 1.8od, Copyright (c) 2014 Chris Gadd
 ''
 CON
@@ -97,13 +97,13 @@ PRI task : length | mark, transfer, value
 
         ifnot long[transfer][T_LEN] -= length := long[transfer][T_LEN] <# 2048
           tail := (tail + 1) & 7                        ' remove transfer
-                                                                  
+
         util.readBytes(prom#ID, long[transfer][T_SRC], long[transfer][T_DST], length)
-                                                                  
+
         long[transfer][T_DST] += length                 ' |       
         long[transfer][T_SRC] += length                 ' update transfer
     while (cnt - mark) < clkfreq >> 2                             
-                                                                  
+
     mark += clkfreq >> 2                                          
-      
+
 DAT
