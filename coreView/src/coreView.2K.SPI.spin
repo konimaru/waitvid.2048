@@ -1,13 +1,11 @@
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2016/03/15
-''       Version: 0.1
+'' Last modified: 2016/03/20
+''       Version: 0.2
 ''
 '' 20160315: initial version
+'' 20160320: release
 ''
-VAR
-  long  link[res_m]
-  
 PUB null
 '' This is not a top level object.
 
@@ -17,10 +15,6 @@ PRI exec(parameters, command)
   link{0} := command
   repeat
   while link{0}
-
-PUB swap(surface)
-
-  exec(surface, cmd_swap)
 
 PUB cmd1(command)
 
@@ -34,14 +28,22 @@ PUB boot
 
   exec(0, cmd_boot)
   
+PUB WaitVBL
+
+  repeat
+  until sync
+  repeat
+  while sync                                    ' 1/0 transition
+  
 PUB init
 
   ifnot cognew(@driver, @link{0}) +1
     abort
 
   exec(0, cmd_done)                             ' make sure cog is running
-  longfill(@driver{$00}, 0, 64)                 ' before making DAT public
-  longfill(@driver[$C0], 0, 64)
+  longmove(@driver[$080], @driver[$100], 256)   ' before making DAT public
+  longfill(@driver{$000}, 0, 128)           
+  longfill(@driver[$180], 0, 128)
 
   return @driver
 
@@ -50,30 +52,26 @@ CON
 '     cmd[12]: command has(1) no(0) arguments
 ' cmd[15..13]: number of arguments -1
 
-  cmd_done      = %111_0 << 12|$001
-  cmd_swap      = %111_0 << 12|$00A
-  cmd_cmd1      = %111_0 << 12|$018
-  cmd_cmdN      = %001_1 << 12|$019
-  cmd_boot      = %111_0 << 12|$027
+  cmd_done      = %111_0 << 12|$02F
+  cmd_cmd1      = %111_0 << 12|$01A
+  cmd_cmdN      = %001_1 << 12|$01B
+  cmd_boot      = %111_0 << 12|$02A
   
+DAT                                             ' DAT mailbox
+
+sync            long    0                       ' sync
+link            long    0                       ' insn
+
 DAT             org     0                       ' display driver
 
 driver          jmpret  $, #setup               ' once
 
-{done}          wrlong  zero, par
-{idle}          rdlong  code, par wz
-                test    code, argn wc           ' check for arguments
-        if_z    jmp     #$-2
-
-                mov     addr, code              '  +0 = args:n:[!Z]:cmd = 16:4:3:9
-                ror     addr, #16               '  +4   extract argument location
-        if_c    call    #args                   '  +8   fetch arguments
-        if_c    addx    addr, #3                '       advance beyond last argument
-                jmp     code                    '       execute function
+                waitcnt time, fcnt              ' sync to next frame
 
 ' transfer hub buffer to display
 
 func_0          mov     scnt, #63               ' number of segments -1
+                mov     addr, scrn              ' working copy
 
                 or      outa, mdnc              ' data mode
                 andn    outa, msel              ' active
@@ -92,7 +90,18 @@ func_0          mov     scnt, #63               ' number of segments -1
                 mov     frqa, #0                ' disable clock
                 or      outa, msel              ' inactive
 
-                jmp     %%0                     ' return
+                xor     idnt, #%0000_00001      ' toggle frame identifier
+                wrlong  idnt, blnk              ' and announce it
+
+{idle}          rdlong  code, par wz
+                test    code, argn wc           ' check for arguments
+        if_z    jmp     %%0
+
+                mov     addr, code              '  +0 = args:n:[!Z]:cmd = 16:4:3:9
+                ror     addr, #16               '  +4   extract argument location
+        if_c    call    #args                   '  +8   fetch arguments
+        if_c    addx    addr, #3                '       advance beyond last argument
+                jmp     code                    '       execute function
 
 ' send single byte command to display
 
@@ -120,6 +129,7 @@ func_2          andn    outa, mdnc              ' command mode
                 mov     frqa, #0                ' disable clock
                 or      outa, msel              ' inactive
                 
+                wrlong  zero, par
                 jmp     %%0                     ' return
 
 ' reset display h/w (min 3us, 240 clocks @80MHz)
@@ -132,6 +142,7 @@ func_3_wait     mov     cnt, cnt
 
                 or      outa, mres              ' normal operation
 
+{done}          wrlong  zero, par
                 jmp     %%0                     ' return
 
 ' support code
@@ -153,7 +164,7 @@ load            rdlong  seg0, addr              ' row 8n+0, columns 32n+0..32n+3
 
                 mov     temp, seg0
                 and     temp, ma5k              ' $55555555
-                shl     temp, odd               ' 0/1
+                shl     temp, idnt              ' 0/1
                 andn    seg0, temp
 
                 rdlong  seg1, addr              ' row 8n+1
@@ -162,7 +173,7 @@ load            rdlong  seg0, addr              ' row 8n+0, columns 32n+0..32n+3
 
                 mov     temp, seg1
                 and     temp, ma5k
-                shl     temp, odd
+                shl     temp, idnt
                 andn    seg1, temp
 
                 rdlong  seg2, addr              ' row 8n+2
@@ -171,7 +182,7 @@ load            rdlong  seg0, addr              ' row 8n+0, columns 32n+0..32n+3
 
                 mov     temp, seg2
                 and     temp, ma5k
-                shl     temp, odd
+                shl     temp, idnt
                 andn    seg2, temp
 
                 rdlong  seg3, addr              ' row 8n+3
@@ -180,7 +191,7 @@ load            rdlong  seg0, addr              ' row 8n+0, columns 32n+0..32n+3
 
                 mov     temp, seg3
                 and     temp, ma5k
-                shl     temp, odd
+                shl     temp, idnt
                 andn    seg3, temp
 
                 rdlong  seg4, addr              ' row 8n+4
@@ -189,7 +200,7 @@ load            rdlong  seg0, addr              ' row 8n+0, columns 32n+0..32n+3
 
                 mov     temp, seg4
                 and     temp, ma5k
-                shl     temp, odd
+                shl     temp, idnt
                 andn    seg4, temp
 
                 rdlong  seg5, addr              ' row 8n+5
@@ -198,7 +209,7 @@ load            rdlong  seg0, addr              ' row 8n+0, columns 32n+0..32n+3
 
                 mov     temp, seg5
                 and     temp, ma5k
-                shl     temp, odd
+                shl     temp, idnt
                 andn    seg5, temp
 
                 rdlong  seg6, addr              ' row 8n+6
@@ -207,7 +218,7 @@ load            rdlong  seg0, addr              ' row 8n+0, columns 32n+0..32n+3
 
                 mov     temp, seg6
                 and     temp, ma5k
-                shl     temp, odd
+                shl     temp, idnt
                 andn    seg6, temp
 
                 rdlong  seg7, addr              ' row 8n+7, columns 32n+0..32n+31
@@ -216,7 +227,7 @@ load            rdlong  seg0, addr              ' row 8n+0, columns 32n+0..32n+3
 
                 mov     temp, seg7
                 and     temp, ma5k
-                shl     temp, odd
+                shl     temp, idnt
                 andn    seg7, temp
 
 load_ret        ret
@@ -271,7 +282,12 @@ mres            long    |< SPI_RES
 mdnc            long    |< SPI_DnC
 
 ma5k            long    $55555555
-odd             long    1
+idnt            long    0
+
+fcnt            long    80_000_000/90
+
+scrn            long    +4
+blnk            long    -4
 
 ' Stuff below is re-purposed for temporary storage.
 
@@ -280,6 +296,12 @@ setup           mov     ctra, ctr0              ' SPI_CLK
 
                 mov     outa, msel              ' not selected
                 max     dira, mask              ' drive outputs/reset
+
+                add     blnk, par               ' frame identifier
+                add     scrn, par               ' screen buffer
+                
+                mov     time, cnt
+                add     time, fcnt
 
                 jmp     #func_3_wait            ' reset, then command loop
 
@@ -313,6 +335,7 @@ ccnt            res     1                       ' segment column counter
 scnt            res     1                       ' segment count
 
 temp            res     1
+time            res     1
 
 tail            fit
 
@@ -355,8 +378,7 @@ CON
   zero          = $1F0                          ' par (dst only)
 
   res_x         = 128                           ' |
-  res_y         = 64                            ' |
-  res_m         = 1                             ' UI support
+  res_y         = 64                            ' UI support
   res_a         = 2                             ' max command arguments
 
   alias         = 0
