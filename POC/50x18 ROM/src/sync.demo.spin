@@ -2,8 +2,8 @@
 '' VGA display 50x18 (single cog, ROM font) - simple video overlay
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2016/09/10
-''       Version: 0.1
+'' Last modified: 2017/11/15
+''       Version: 0.2
 ''
 CON
   _clkmode = client#_clkmode
@@ -120,6 +120,8 @@ setup           add     fcnt_, par              ' @long[par][3]
 
 ' href is set 4 + 9 + 436 cycles after the initial hsync waitvid (see driver)
 '
+'           hsync     vscl       vsync detection
+'          -------   ------   ---------------------
 ' delay = (256 * 2 - 16 * 2 - (lref - (href - 449))) / 2
 '       = (480 - lref + href - 449) / 2
 '       = (href + 31 - lref) / 2
@@ -135,6 +137,7 @@ setup           add     fcnt_, par              ' @long[par][3]
         if_c    hubop   $, #%10000_000
 
                 mov     vscl, href              ' final adjustment
+                waitvid zero, #0                ' latch it
                 max     dira, mask              ' drive outputs
 
                 jmp     %%0                     ' return
