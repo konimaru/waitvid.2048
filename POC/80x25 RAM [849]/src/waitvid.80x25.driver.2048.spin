@@ -77,7 +77,7 @@ driver          jmpret  $, #setup               '  -4   once
 
 ' Palette entries holds two pairs of FG/BG colours (high word: blink colours, low word: normal colours).
 
-                long               $82020282, $22020222, $92020292, $0A02020A, $8A02028A, $2A02022A, $AA0202AA
+                long   {$062A2A06,}$82020282, $22020222, $92020292, $0A02020A, $8A02028A, $2A02022A, $AA0202AA
                 long    $02828202, $82828282, $22828222, $92828292, $0A82820A, $8A82828A, $2A82822A, $AA8282AA
                 long    $02222202, $82222282, $22222222, $92222292, $0A22220A, $8A22228A, $2A22222A, $AA2222AA
                 long    $02929202, $82929282, $22929222, $92929292, $0A92920A, $8A92928A, $2A92922A, $AA9292AA
@@ -183,7 +183,7 @@ chars           movd    :one, #pix+0            ' |
                 mov     vscl, hvis              ' 1/9, speed up (one pixel per frame clock)
                 mov     ecnt, #80               ' character count
 
-:one            ror     1-1, #8                 ' $0000AABB -> $BB0000AA -> $000000BB
+:one            ror     1-1, #8                 ' $000?AABB -> $BB000?AA -> $??????BB
                 add     $-1, dst1               ' advance
                 add     $+1, d1s1               ' advance (pipeline)
 :two            waitvid 0-0, 1-1                ' emit pixels (9th column is background)
@@ -391,8 +391,8 @@ setup           add     trap, par wc            ' carry set -> secondary
                 rdlong  font, font_             ' get font definition (2n)              (%%)
                 wrlong  zero, font_             ' acknowledge font definition setup
 
-                mov     plte, font              ' |                                     (%%)
-                shr     plte, #16               ' palette location
+                mov     plte, font              ' get palette location (2n)             (%%)
+                shr     plte, #16               ' |
 
                 rdlong  locn, locn_ wz          ' get cursor location                   (%%)
         if_nz   wrlong  zero, locn_             ' acknowledge cursor location
@@ -460,8 +460,8 @@ EOD{ata}        fit
 
 scrn            res     1                       ' screen buffer         < setup +10     (%%)
 font            res     1                       ' font definition       < setup +12     (%%)
+plte            res     1                       ' palette location      < setup +??     (%%)
 locn            res     1                       ' cursor location       < setup +14     (%%)
-plte            res     1                       ' palette               < setup +??     (%%)
 ecnt            res     1                       ' element count
 scnt            res     1                       ' scanlines (per char)
 
