@@ -115,12 +115,11 @@ vsync           mov     ecnt, #13+2+(34-2)
                 call    #blank                                                            
                 djnz    ecnt, #vsync+1
 
-' While still in sync, figure out the blink mode (used to be based on cnt) and cursor.
+' While still in sync, figure out the blink state (used to be based on cnt) and cursor.
 ' hsync offers 31 hub windows.
 
                 add     fcnt, #1                ' next frame
-                cmpsub  fcnt, #36 wz            ' N frames per phase (on/off)
-        if_z    rev     rcnt, #{32}-0           ' toggle colours
+                cmpsub  fcnt, #36               ' N frames per phase (on/off)
 
                 cmp     locn, #0 wz             ' check cursor availability
                 mov     crs0, #0                ' default is disabled
@@ -190,7 +189,7 @@ chars           movd    :one, #pix+0            ' |
 :two            waitvid 0-0, 1-1                ' emit pixels (9th column is background)
                 djnz    ecnt, #$-4
 
-                xor     :one, swap              ' ror #8 vs shr #24
+                xor     :one, swap              ' ror #8 vs sar #24
 
 ' Horizontal sync embedded here due to timing constraints, only 18 clocks are allowed between waitvids.
 
@@ -224,7 +223,7 @@ load            muxnc   flag, $                 ' preserve carry flag
 :ld_0           rdword  0-0, phsb               '  +0 = {p.0.3} two scanlines worth of character data
                 add     $-1, dst4               '  +8   {p.0.4} advance dst
 
-                test    frqb, bt24 wz           '  -4                   {c.0.0} check blink mode
+'               test    frqb, bt24 wz           '  -4                   {c.0.0} check blink mode
                 shr     frqb, #25               '  +0 =                 {c.0.1} palette index
                 movs    :rd_0, frqb             '  +4                   {c.0.2} prepare palette-to-temp
                 
@@ -239,9 +238,9 @@ load            muxnc   flag, $                 ' preserve carry flag
                 add     $-1, dst4               '  +8   {p.1.4}
                 sub     addr, #1                '  -4   {p.1.5}
 
-        if_nz   rol     col0, rcnt              '  +0 =                 {c.0.4} optionally select alternate colour
+'       if_nz   rol     col0, rcnt              '  +0 =                 {c.0.4} optionally select alternate colour
 
-                test    frqb, bt24 wz           '  +4                   {c.1.0}
+'               test    frqb, bt24 wz           '  +4                   {c.1.0}
                 shr     frqb, #25               '  +8                   {c.1.1}
                 movs    :rd_1, frqb             '  -4                   {c.1.2}
 
@@ -251,14 +250,14 @@ load            muxnc   flag, $                 ' preserve carry flag
 :wr_0           mov     0-0, col0               '  +4                   {c.0.5} transfer temp to colour array
                 add     $-1, dst4               '  +8                   {c.0.6} advance destination
 :rd_1           mov     col1, 1-1               '  -4                   {c.1.3}
-        if_nz   rol     col1, rcnt              '  +0 =                 {c.1.4}
+'       if_nz   rol     col1, rcnt              '  +0 =                 {c.1.4}
         
                 ror     frqb, #8                '  +8   {p.2.1}
                 mov     phsb, eins              '  -4   {p.2.2}
 :ld_2           rdword  2-2, phsb               '  +0 = {p.2.3}
                 add     $-1, dst4               '  +8   {p.2.4}
 
-                test    frqb, bt24 wz           '  -4                   {c.2.0}
+'               test    frqb, bt24 wz           '  -4                   {c.2.0}
                 shr     frqb, #25               '  +0 =                 {c.2.1}
                 movs    :rd_2, frqb             '  +4                   {c.2.2}
                 
@@ -274,9 +273,9 @@ load            muxnc   flag, $                 ' preserve carry flag
 
 :wr_1           mov     1-1, col1               '  -4                   {c.1.5}
                 add     $-1, dst4               '  +0 =                 {c.1.6}
-        if_nz   rol     col2, rcnt              '  +4                   {c.2.4}
+'       if_nz   rol     col2, rcnt              '  +4                   {c.2.4}
 
-                test    frqb, bt24 wz           '  +8                   {c.3.0}
+'               test    frqb, bt24 wz           '  +8                   {c.3.0}
                 shr     frqb, #25               '  -4                   {c.3.1}
                 movs    :rd_3, frqb             '  +0 =                 {c.3.2}
 
@@ -284,7 +283,7 @@ load            muxnc   flag, $                 ' preserve carry flag
                 add     $-1, dst4               '  +8                   {c.2.6}
 
 :rd_3           mov     col3, 3-3               '  -4                   {c.3.3}
-        if_nz   rol     col3, rcnt              '  +0 =                 {c.3.4}
+'       if_nz   rol     col3, rcnt              '  +0 =                 {c.3.4}
 :wr_3           mov     3-3, col3               '  +4                   {c.3.5}
                 add     $-1, dst4               '  +8                   {c.3.6}
            
@@ -345,12 +344,10 @@ prep_ret        ret
 xmsk            long    $0000FF07               ' covers mode/x
 xlim            long    80 << 8                 ' park position
     
-rcnt            long    8                       ' palette bit rotation count (16/8/0)
 fcnt            long    0                       ' blink frame count
-bt24            long    |< 24                   ' blink indicator
 
 flag            long    0                       ' loader flag storage
-swap            long    %000010 << 26 | 16      ' ror #8 vs shr #24
+swap            long    %000110 << 26 | 16      ' ror #8 vs sar #24
 sync            long    hv_idle ^ $0200
 
 wrap            long     18 << 12 | 180         '  18/180
@@ -423,9 +420,6 @@ setup           add     trap, par wc            ' carry set -> secondary
                 or      zwei, #%%000_3          ' |
                 mov     vcfg, zwei              ' set vgrp and vpin
                 movi    vcfg, #%0_01_0_00_000   ' VGA, 2 colour mode
-
-                test    zwei, #%1_00000000 wz   ' |
-        if_nz   xor     rcnt, #16|8             ' blink mode setup (default is 8)
 
                 waitcnt temp, #0                ' PLL settled, frame counter flushed
                                                   

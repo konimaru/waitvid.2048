@@ -53,7 +53,7 @@ PUB selftest : n | c
 
   driver.init(-1, @link{0})                             ' start driver
 
-  setCursor(CURSOR_ON|CURSOR_BLOCK|CURSOR_FLASH)
+  setCursor(CURSOR_ON|CURSOR_ULINE|CURSOR_FLASH)
 
   repeat bcnt                                           ' fill screen
     c := (frqa++ & 127) << 1
