@@ -391,6 +391,9 @@ setup           add     trap, par wc            ' carry set -> secondary
                 rdlong  font, font_             ' get font definition (2n)              (%%)
                 wrlong  zero, font_             ' acknowledge font definition setup
 
+                mov     plte, font              ' |                                     (%%)
+                shr     plte, #16               ' palette location
+
                 rdlong  locn, locn_ wz          ' get cursor location                   (%%)
         if_nz   wrlong  zero, locn_             ' acknowledge cursor location
 
@@ -401,7 +404,7 @@ setup           add     trap, par wc            ' carry set -> secondary
 
 ' Upset video h/w and relatives.
 
-                rdlong  temp, #0                ' clkfreq
+                rdlong  temp, #0                ' clkfreq                               (%%)
                 shr     temp, #10               ' ~1ms
         if_nc   waitpne $, #0                   ' adjust primary
 
@@ -458,6 +461,7 @@ EOD{ata}        fit
 scrn            res     1                       ' screen buffer         < setup +10     (%%)
 font            res     1                       ' font definition       < setup +12     (%%)
 locn            res     1                       ' cursor location       < setup +14     (%%)
+plte            res     1                       ' palette               < setup +??     (%%)
 ecnt            res     1                       ' element count
 scnt            res     1                       ' scanlines (per char)
 
