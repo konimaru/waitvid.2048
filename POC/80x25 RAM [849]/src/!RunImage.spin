@@ -49,9 +49,11 @@ PUB selftest : n | c
 
   link{0} := video | @scrn{0}
   link[1] := font#height << 24 | font.addr
-' link[2] := @cursor * $00010001
+  link[2] := @cursor * $00010001
 
   driver.init(-1, @link{0})                             ' start driver
+
+  setCursor(CURSOR_ON|CURSOR_BLOCK|CURSOR_FLASH)
 
   repeat bcnt                                           ' fill screen
     c := (frqa++ & 127) << 1

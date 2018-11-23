@@ -2,12 +2,12 @@
 '' VGA display 80x25 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2015/06/15
-''       Version: 0.15
+'' Last modified: 2018/11/23
+''       Version: 0.15.LJ.1
 ''
-'' long[par][0]: vgrp:mode:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer   (4n)
-'' long[par][1]:                [!Z]:addr =      16:16 -> zero (accepted) font descriptor (2n)
-'' long[par][2]:                addr:addr =      16:16 -> zero (accepted) cursor location (4n)
+'' long[par][0]: vgrp:[!Z]:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer    (4n)
+'' long[par][1]:                addr:addr =      16:16 -> zero (accepted) palette/font     (2n/2n)
+'' long[par][2]:                addr:addr =      16:16 -> zero (accepted) cursor locations (4n)
 '' long[par][3]: frame indicator/sync lock
 ''
 '' - character entries are words, i.e. ASCII << 8 | attribute
@@ -97,7 +97,7 @@ driver          jmpret  $, #setup               '  -4   once
 ' The following two masks are placed here to make sure cmsk is at 2n.
 
 cmsk            long    %%3330_3330             ' xor mask for block cursor
-pmsk            long    %%0000_3333             ' xor mask for underscore cursor (updated for primary)
+pmsk            long    %%0000_1332             ' xor mask for underscore cursor (updated for primary)
 
 ' horizontal timing 720(720)  1(18) 6(108) 3(54)
 '   vertical timing 400(400) 13(13) 2(2)  34(34)
