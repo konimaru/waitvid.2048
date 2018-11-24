@@ -32,6 +32,9 @@
 '' 20140926: added cursor mask constant
 '' 20150615: full character range (9th column is always background)
 ''
+'' 20181124: dropped blink mode, now uses 256 entry (hub) palette
+''           8th character column is copied to 9th
+''
 CON
   CURSOR_ON    = %100
   CURSOR_OFF   = %000
@@ -202,92 +205,78 @@ chars_ret       ret
 
 load            muxnc   flag, $                 ' preserve carry flag
 
-                movd    :ld_0, #pix+0           ' |
-                movd    :ld_1, #pix+1           ' |
-                movd    :ld_2, #pix+2           ' re/store initial settings
-                movd    :ld_3, #pix+3           ' |
+                movd    :pix0, #pix+0           ' |
+                movd    :pix1, #pix+1           ' |
+                movd    :pix2, #pix+2           ' re/store initial settings
+                movd    :pix3, #pix+3           ' |
 
-                movd    :wr_0, #col+0           ' |
-                movd    :wr_1, #col+1           ' |
-                movd    :wr_2, #col+2           ' same for colours
-                movd    :wr_3, #col+3           ' |
+                movd    :col0, #col+0           ' |
+                movd    :col1, #col+1           ' |
+                movd    :col2, #col+2           ' same for colours
+                movd    :col3, #col+3           ' |
 
                 mov     addr, zwei              ' current screen base
                 movi    addr, #80{units} -4     ' add magic marker
 
 ' Fetch pixel data and colour for four characters. Only character 4n is documented.
 
-:loop           rdword  frqb, addr              '  +0 = {p.0.0} read ASCII + colour
-                ror     frqb, #8                '  +8   {p.0.1} select ASCII for indexed read
-                mov     phsb, eins              '  -4   {p.0.2} current font address
-:ld_0           rdword  0-0, phsb               '  +0 = {p.0.3} two scanlines worth of character data
-                add     $-1, dst4               '  +8   {p.0.4} advance dst
+:loop           rdword  frqb, addr              ' {p.0.0} read ASCII + colour
+                ror     frqb, #8                ' {p.0.1} select ASCII for indexed read
+                mov     phsb, eins              ' {p.0.2} current font address
+                rdword  pix0, phsb              ' {p.0.3} two scanlines worth of character data
+                shr     frqb, #24               '               {c.0.0} select palette index for read
+                mov     phsb, plte              '               {c.0.1} current palette location
+:col0           rdword  0-0, phsb               '               {c.0.2} read palette entry
+                add     $-1, dst4               '               {c.0.3} advance dst
+                sub     addr, #3                ' {p.0.4} advance src
 
-'               test    frqb, bt24 wz           '  -4                   {c.0.0} check blink mode
-                shr     frqb, #25               '  +0 =                 {c.0.1} palette index
-                movs    :rd_0, frqb             '  +4                   {c.0.2} prepare palette-to-temp
-                
-                sub     addr, #3                '  +8   {p.0.5} advance src
-:rd_0           mov     col0, 0-0               '  -4                   {c.0.3} read palette entry
+                rdword  frqb, addr              ' {p.1.0}
+                ror     frqb, #8                ' {p.1.1}
+                mov     phsb, eins              ' {p.1.2}
+                rdword  pix1, phsb              ' {p.1.3}
+                shr     frqb, #24               '               {c.1.0}
+                mov     phsb, plte              '               {c.1.1}
+:col1           rdword  1-1, phsb               '               {c.1.2}
+                add     $-1, dst4               '               {c.1.3}
+                sub     addr, #1                ' {p.1.4}
 
+                rdword  frqb, addr              ' {p.2.0}
+                ror     frqb, #8                ' {p.2.1}
+                mov     phsb, eins              ' {p.2.2}
+                rdword  pix2, phsb              ' {p.2.3}
+                shr     frqb, #24               '               {c.2.0}
+                mov     phsb, plte              '               {c.2.1}
+:col2           rdword  2-2, phsb               '               {c.2.2}
+                add     $-1, dst4               '               {c.2.3}
+                sub     addr, i4s3 wc           ' {p.2.4}
 
-                rdword  frqb, addr              '  +0 = {p.1.0}
-                ror     frqb, #8                '  +8   {p.1.1}
-                mov     phsb, eins              '  -4   {p.1.2}
-:ld_1           rdword  1-1, phsb               '  +0 = {p.1.3}
-                add     $-1, dst4               '  +8   {p.1.4}
-                sub     addr, #1                '  -4   {p.1.5}
+                rdword  frqb, addr              ' {p.3.0}
+                ror     frqb, #8                ' {p.3.1}
+                mov     phsb, eins              ' {p.3.2}
+                rdword  pix3, phsb              ' {p.3.3}
+                shr     frqb, #24               '               {c.3.0}
+                mov     phsb, plte              '               {c.3.1}
+:col3           rdword  3-3, phsb               '               {c.3.2}
+                add     $-1, dst4               '               {c.3.3}
+'{deferred}     sub     addr, #1                ' {p.3.4}
 
-'       if_nz   rol     col0, rcnt              '  +0 =                 {c.0.4} optionally select alternate colour
+                add     pix0, pdup              ' {p.0.5} duplicate !b15
+:pix0           mov     0-0, pix0               ' {p.0.6} store final pixel data
+                add     $-1, dst4               ' {p.0.7} advance dst
 
-'               test    frqb, bt24 wz           '  +4                   {c.1.0}
-                shr     frqb, #25               '  +8                   {c.1.1}
-                movs    :rd_1, frqb             '  -4                   {c.1.2}
+                add     pix1, pdup              ' {p.1.5}
+:pix1           mov     1-1, pix1               ' {p.1.6}
+                add     $-1, dst4               ' {p.1.7}
 
+                add     pix2, pdup              ' {p.2.5}
+:pix2           mov     2-2, pix2               ' {p.2.6}
+                add     $-1, dst4               ' {p.2.7}
 
-                rdword  frqb, addr              '  +0 = {p.2.0}
+                add     pix3, pdup              ' {p.3.5}
+:pix3           mov     3-3, pix3               ' {p.3.6}
+                add     $-1, dst4               ' {p.3.7}
 
-:wr_0           mov     0-0, col0               '  +4                   {c.0.5} transfer temp to colour array
-                add     $-1, dst4               '  +8                   {c.0.6} advance destination
-:rd_1           mov     col1, 1-1               '  -4                   {c.1.3}
-'       if_nz   rol     col1, rcnt              '  +0 =                 {c.1.4}
-        
-                ror     frqb, #8                '  +8   {p.2.1}
-                mov     phsb, eins              '  -4   {p.2.2}
-:ld_2           rdword  2-2, phsb               '  +0 = {p.2.3}
-                add     $-1, dst4               '  +8   {p.2.4}
-
-'               test    frqb, bt24 wz           '  -4                   {c.2.0}
-                shr     frqb, #25               '  +0 =                 {c.2.1}
-                movs    :rd_2, frqb             '  +4                   {c.2.2}
-                
-                sub     addr, i4s3 wc           '  +8   {p.2.5}
-:rd_2           mov     col2, 2-2               '  -4                   {c.2.3}
-
-
-                rdword  frqb, addr              '  +0 = {p.3.0}
-                ror     frqb, #8                '  +8   {p.3.1}
-                mov     phsb, eins              '  -4   {p.3.2}
-:ld_3           rdword  3-3, phsb               '  +0 = {p.3.3}
-                add     $-1, dst4               '  +8   {p.3.4}
-
-:wr_1           mov     1-1, col1               '  -4                   {c.1.5}
-                add     $-1, dst4               '  +0 =                 {c.1.6}
-'       if_nz   rol     col2, rcnt              '  +4                   {c.2.4}
-
-'               test    frqb, bt24 wz           '  +8                   {c.3.0}
-                shr     frqb, #25               '  -4                   {c.3.1}
-                movs    :rd_3, frqb             '  +0 =                 {c.3.2}
-
-:wr_2           mov     2-2, col2               '  +4                   {c.2.5}
-                add     $-1, dst4               '  +8                   {c.2.6}
-
-:rd_3           mov     col3, 3-3               '  -4                   {c.3.3}
-'       if_nz   rol     col3, rcnt              '  +0 =                 {c.3.4}
-:wr_3           mov     3-3, col3               '  +4                   {c.3.5}
-                add     $-1, dst4               '  +8                   {c.3.6}
-           
-        if_nc   djnz    addr, #:loop            '  -4   {p.3.5} for all characters
+        if_nc   djnz    addr, #:loop            ' {p.3.4} for all characters
 
                 mov     vier, crs0
                 call    #cursor
@@ -345,6 +334,7 @@ xmsk            long    $0000FF07               ' covers mode/x
 xlim            long    80 << 8                 ' park position
     
 fcnt            long    0                       ' blink frame count
+pdup            long    $00018000               ' pixel duplicator
 
 flag            long    0                       ' loader flag storage
 swap            long    %000110 << 26 | 16      ' ror #8 vs sar #24
@@ -404,7 +394,7 @@ setup           add     trap, par wc            ' carry set -> secondary
 
 ' Upset video h/w and relatives.
 
-                rdlong  temp, #0                ' clkfreq                               (%%)
+                rdlong  temp, #0                ' clkfreq
                 shr     temp, #10               ' ~1ms
         if_nc   waitpne $, #0                   ' adjust primary
 
@@ -460,8 +450,8 @@ EOD{ata}        fit
 
 scrn            res     1                       ' screen buffer         < setup +10     (%%)
 font            res     1                       ' font definition       < setup +12     (%%)
-plte            res     1                       ' palette location      < setup +??     (%%)
-locn            res     1                       ' cursor location       < setup +14     (%%)
+plte            res     1                       ' palette location      < setup +14     (%%)
+locn            res     1                       ' cursor location       < setup +16     (%%)
 ecnt            res     1                       ' element count
 scnt            res     1                       ' scanlines (per char)
 
@@ -472,13 +462,13 @@ crs0            res     1                       ' cursor 0 location and mode
 crs1            res     1                       ' cursor 1 location and mode
 
 eins            res     1
-zwei            res     1                       '                       < setup < 26    (%%)
+zwei            res     1                       '                       < setup < 28    (%%)
 vier            res     1
 
-col2            res     alias
-col0            res     1
-col3            res     alias
-col1            res     1
+pix0            res     1
+pix1            res     1
+pix2            res     1
+pix3            res     1
 
 pix             res     80 +1                   ' emitter pixel array |
 col             res     80 +1                   ' emitter colour data | + park position

@@ -2,8 +2,8 @@
 '' VGA display 80x25 (dual cog) - demo
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2015/06/15
-''       Version: 0.9
+'' Last modified: 2018/11/24
+''       Version: 0.1
 ''
 CON
   _clkmode = XTAL1|PLL16X
@@ -19,9 +19,9 @@ CON
 
 CON
   vgrp     = 2                                          ' video pin group
-  mode     = 1                                          ' 0: FG on/off, 1: FG :==: BG
+  vpin     = %%333_0                                    ' video pin mask
 
-  video    = (vgrp << 9 | mode << 8 | %%333_0) << 21
+  video    = (vgrp << 9 | vpin) << 21
 
 CON
   CURSOR_ON    = driver#CURSOR_ON
@@ -47,8 +47,12 @@ VAR
   
 PUB selftest : n | c
 
+  c := font.addr
+  repeat n from 0 to 2047
+    word[c][n] ^= $8000
+
   link{0} := video | @scrn{0}
-  link[1] := font#height << 24 | font.addr
+  link[1] := @palette << 16 | font.addr
   link[2] := @cursor * $00010001
 
   driver.init(-1, @link{0})                             ' start driver
@@ -116,4 +120,23 @@ PRI setCursor(setup)
 
   cursor.byte{CM} := (cursor.byte{CM} & constant(!CURSOR_MASK)) | setup
   
+DAT
+
+palette         word    $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06
+                word    $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06
+                word    $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06
+                word    $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06
+                word    $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06
+                word    $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06
+                word    $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06
+                word    $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06
+                word    $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06
+                word    $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06
+                word    $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06
+                word    $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06
+                word    $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06
+                word    $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06
+                word    $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06
+                word    $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06, $2A06
+
 DAT
