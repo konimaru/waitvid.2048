@@ -408,7 +408,7 @@ setup           add     trap, par wc            ' carry set -> secondary
                 mov     frqa, frqx              ' 28.322MHz
                 
                 mov     vscl, #1                ' reload as fast as possible
-                mov     zwei, scrn              ' vgrp:mode:vpin:[!Z]:scrn = 2:1:8:5:16 (%%)
+                mov     zwei, scrn              ' vgrp:[!Z]:vpin:[!Z]:scrn = 2:1:8:5:16 (%%)
                 shr     zwei, #5+16             ' |
                 or      zwei, #%%000_3          ' |
                 mov     vcfg, zwei              ' set vgrp and vpin
