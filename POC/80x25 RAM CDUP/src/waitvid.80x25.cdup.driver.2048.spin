@@ -2,7 +2,7 @@
 '' VGA display 80x25 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2018/11/23
+'' Last modified: 2018/11/24
 ''       Version: 0.15.cdup.2
 ''
 '' long[par][0]: vgrp:[!Z]:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer    (4n)
@@ -32,7 +32,7 @@
 '' 20140926: added cursor mask constant
 '' 20150615: full character range (9th column is always background)
 ''
-'' 20181124: dropped blink mode, now uses 256 entry (hub) palette
+'' 20181124: dropped character blink mode, now uses 256 entry (hub) palette
 ''           8th character column is copied to 9th
 ''
 CON
@@ -77,30 +77,6 @@ header_size     fit     16
 DAT             org     0                       ' video driver
 
 driver          jmpret  $, #setup               '  -4   once
-
-' Palette entries holds two pairs of FG/BG colours (high word: blink colours, low word: normal colours).
-
-                long   {$062A2A06,}$82020282, $22020222, $92020292, $0A02020A, $8A02028A, $2A02022A, $AA0202AA
-                long    $02828202, $82828282, $22828222, $92828292, $0A82820A, $8A82828A, $2A82822A, $AA8282AA
-                long    $02222202, $82222282, $22222222, $92222292, $0A22220A, $8A22228A, $2A22222A, $AA2222AA
-                long    $02929202, $82929282, $22929222, $92929292, $0A92920A, $8A92928A, $2A92922A, $AA9292AA
-                long    $020A0A02, $820A0A82, $220A0A22, $920A0A92, $0A0A0A0A, $8A0A0A8A, $2A0A0A2A, $AA0A0AAA
-                long    $028A8A02, $828A8A82, $228A8A22, $928A8A92, $0A8A8A0A, $8A8A8A8A, $2A8A8A2A, $AA8A8AAA
-                long    $022A2A02, $822A2A82, $222A2A22, $922A2A92, $0A2A2A0A, $8A2A2A8A, $2A2A2A2A, $AA2A2AAA
-                long    $02AAAA02, $82AAAA82, $22AAAA22, $92AAAA92, $0AAAAA0A, $8AAAAA8A, $2AAAAA2A, $AAAAAAAA
-                long    $02565602, $82565682, $22565622, $92565692, $0A56560A, $8A56568A, $2A56562A, $AA5656AA
-                long    $02D6D602, $82D6D682, $22D6D622, $92D6D692, $0AD6D60A, $8AD6D68A, $2AD6D62A, $AAD6D6AA
-                long    $02767602, $82767682, $22767622, $92767692, $0A76760A, $8A76768A, $2A76762A, $AA7676AA
-                long    $02F6F602, $82F6F682, $22F6F622, $92F6F692, $0AF6F60A, $8AF6F68A, $2AF6F62A, $AAF6F6AA
-                long    $025E5E02, $825E5E82, $225E5E22, $925E5E92, $0A5E5E0A, $8A5E5E8A, $2A5E5E2A, $AA5E5EAA
-                long    $02DEDE02, $82DEDE82, $22DEDE22, $92DEDE92, $0ADEDE0A, $8ADEDE8A, $2ADEDE2A, $AADEDEAA
-                long    $027E7E02, $827E7E82, $227E7E22, $927E7E92, $0A7E7E0A, $8A7E7E8A, $2A7E7E2A, $AA7E7EAA
-                long    $02FEFE02, $82FEFE82, $22FEFE22, $92FEFE92, $0AFEFE0A, $8AFEFE8A, $2AFEFE2A, $AAFEFEAA
-
-' The following two masks are placed here to make sure cmsk is at 2n.
-
-cmsk            long    %%3330_3330             ' xor mask for block cursor
-pmsk            long    %%0000_1332             ' xor mask for underscore cursor (updated for primary)
 
 ' horizontal timing 720(720)  1(18) 6(108) 3(54)
 '   vertical timing 400(400) 13(13) 2(2)  34(34)
@@ -356,6 +332,10 @@ dst4            long    4 << 9                  ' dst     +/-= 4
 d1s1            long    1 << 9  | 1             ' dst/src +/-= 1
 i4s3            long    4 << 23 | 3
 
+                long    0[$&1]
+cmsk    {2n}    long    %%3330_3330             ' xor mask for block cursor
+pmsk    {2n+1}  long    %%0000_1332             ' xor mask for underscore cursor (updated for primary)
+
 ' Stuff below is re-purposed for temporary storage.
 
 setup           add     trap, par wc            ' carry set -> secondary
@@ -429,13 +409,14 @@ setup           add     trap, par wc            ' carry set -> secondary
                 shl     mask, temp              ' finalise mask
 
                 max     dira, mask              ' drive outputs
-                mov     $000, pal0              ' restore colour entry 0
         if_nc   shl     pmsk, #8                ' adjust underscore cursor (bytes swapped)
-                jmp     #vsync                  ' return
+        
+' Setup complete, do the heavy lifting upstairs ...
+
+                jmp     %%0                     ' return
 
 ' Local data, used only once.
 
-pal0            long    dcolour|hv_idle         ' first palette entry
 frqx            long    $16A85879               ' 28.322MHz
 mask            long    %11111111
 
@@ -490,7 +471,6 @@ __names         byte    "res_x", 0
 CON
   zero    = $1F0                                ' par (dst only)
   hv_idle = $01010101 * %10 {%hv}               ' h/v sync inactive
-  dcolour = %%0010_0220_0220_0010               ' default colour
   
   res_x   = 720                                 ' |
   res_y   = 400                                 ' |
