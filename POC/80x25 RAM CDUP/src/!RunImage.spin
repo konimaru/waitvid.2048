@@ -3,7 +3,7 @@
 ''
 ''        Author: Marko Lukat
 '' Last modified: 2018/11/24
-''       Version: 0.1
+''       Version: 0.2
 ''
 CON
   _clkmode = XTAL1|PLL16X
@@ -36,7 +36,7 @@ CON
   #0, CM, CX, CY
 
 OBJ
-  driver: "waitvid.80x25.8dup.driver.2048"
+  driver: "waitvid.80x25.cdup.driver.2048"
     font: "generic8x16-2font"
   
 VAR
