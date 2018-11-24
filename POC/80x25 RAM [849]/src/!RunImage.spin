@@ -36,7 +36,7 @@ CON
   #0, CM, CX, CY
 
 OBJ
-  driver: "waitvid.80x25.driver.2048"
+  driver: "waitvid.80x25.8dup.driver.2048"
     font: "generic8x16-2font"
   
 VAR
