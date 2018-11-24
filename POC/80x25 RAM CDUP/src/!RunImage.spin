@@ -45,11 +45,11 @@ VAR
 
   long  cursor                                          ' text cursor
   
-PUB selftest : n | c
+PUB selftest : n | addr
 
-  c := font.addr
+  addr := font.addr
   repeat n from 0 to 2047
-    word[c][n] ^= $8000
+    word[addr][n] ^= $8000                              ' only once
 
   link{0} := video | @scrn{0}
   link[1] := @palette << 16 | font.addr
@@ -65,7 +65,7 @@ PUB selftest : n | c
 PRI redef(c, cdef) : s
 
   repeat s from 0 to 15 step 2
-    word[font.addr][128 * s + c] := byte[cdef][s] << 8 | byte[cdef][s+1]
+    word[font.addr][128 * s + c] := (byte[cdef][s] ^ $80) << 8 | byte[cdef][s+1]
     
 PRI printTextAt(x, y, attr, s)
 
