@@ -165,7 +165,7 @@ chars           movd    :one, #pix+0            ' |
 :one            ror     1-1, #8                 ' $000?AABB -> $BB000?AA -> $??????BB
                 add     $-1, dst1               ' advance
                 add     $+1, d1s1               ' advance (pipeline)
-:two            waitvid 0-0, 1-1                ' emit pixels (9th column is background)
+:two            waitvid 0-0, 1-1                ' emit pixels
                 djnz    ecnt, #$-4
 
                 xor     :one, swap              ' ror #8 vs sar #24
