@@ -2,8 +2,8 @@
 '' VGA display 80x25 (dual cog) - demo
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2018/11/27
-''       Version: 0.3
+'' Last modified: 2018/11/28
+''       Version: 0.4
 ''
 CON
   _clkmode = XTAL1|PLL16X
@@ -45,7 +45,7 @@ VAR
 
   long  cursor                                          ' text cursor
   
-PUB selftest : n | addr
+PUB selftest : n
 
   link{0} := video | @scrn{0}
   link[1] := @palette << 16 | font.addr
@@ -53,10 +53,21 @@ PUB selftest : n | addr
 
   driver.init(-1, @link{0})                             ' start driver
 
-  setCursor(CURSOR_ON|CURSOR_ULINE|CURSOR_FLASH)
+' setCursor(CURSOR_ON|CURSOR_ULINE|CURSOR_FLASH)
 
   repeat bcnt                                           ' fill screen
     printChar(n, n++)
+
+  block( 5, 1, $30)
+  block(23, 1, $20)
+  block(41, 1, $50)
+  block(59, 1, $70)
+
+PRI block(sx, sy, c) : n | x, y
+
+  repeat y from 0 to 15
+    repeat x from 0 to 15
+      printCharAt(sx+x, sy+y, c, n++)
 
 PRI redef(char, cdef) | addr, eins, zwei
 
