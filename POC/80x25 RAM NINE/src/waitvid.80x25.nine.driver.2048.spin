@@ -2,8 +2,8 @@
 '' VGA display 80x25 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2018/11/27
-''       Version: 0.15.nine.3
+'' Last modified: 2018/11/29
+''       Version: 0.15.nine.4
 ''
 '' long[par][0]: vgrp:[!Z]:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer    (4n)
 '' long[par][1]:                addr:addr =      16:16 -> zero (accepted) palette/font     (2n/4n)
@@ -34,6 +34,7 @@
 ''
 '' 20181124: dropped character blink mode, now uses 256 entry (hub) palette
 '' 20181127: full 9x16 support
+'' 20181129: clean palette before use
 ''
 CON
   CURSOR_ON    = %100
@@ -209,7 +210,7 @@ load            muxnc   flag, $                 ' preserve carry flag
 
                 ror     frqb, #8                '  +8   palette index
                 mov     phsb, plte              '  -4   current palette location
-:colN           rdword  2-2, phsb               '  +0 = read palette entry
+                rdword  colN, phsb              '  +0 = read palette entry
 
                 shr     frqb, #23               '  +8   ASCII *2
                 mov     phsb, eins              '  -4   current font address
@@ -228,9 +229,13 @@ load            muxnc   flag, $                 ' preserve carry flag
 :pix3           mov     1-1, pix3               '  -4   store scanline 3
                 add     $-1, dst1               '  +0 = |
 
-                add     :colN, dst1             '  +4   advance destination
-                sub     addr, #2                '  +8   advance source
-                djnz    ecnt, #:loop            '  -4   for all characters
+                and     colN, cmsk              '  +4   clean sync bits
+                or      colN, idle              '  +8   insert idle state
+:colN           mov     2-2, colN               '  -4   store palette
+                add     $-1, dst1               '  +0 = advance destination
+
+                sub     addr, #2                '  +4   advance source
+                djnz    ecnt, #:loop            '  +8   for all characters
 
                 mov     vier, crs0
                 call    #cursor
@@ -292,6 +297,7 @@ adv4            long    256*(4+1)*1             ' 4 scanlines in font
 adv8            long    256*(4+1)*2             ' 8 scanlines in font
 
 flag            long    0                       ' loader flag storage
+idle            long    hv_idle
 sync            long    hv_idle ^ $0200
 
 wrap            long     18 << 12 | 180         '  18/180
@@ -423,6 +429,7 @@ vier            res     1
 
 pix0            res     1
 pix3            res     1
+colN            res     1
 
                 res     80                      ' |
 pix             res     80 +1                   ' emitter pixel array |
