@@ -2,8 +2,8 @@
 '' VGA display 80x25 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2018/11/29
-''       Version: 0.15.nine.4
+'' Last modified: 2018/12/06
+''       Version: 0.15.nine.5
 ''
 '' long[par][0]: vgrp:[!Z]:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer    (4n)
 '' long[par][1]:                addr:addr =      16:16 -> zero (accepted) palette/font     (2n/4n)
@@ -35,6 +35,7 @@
 '' 20181124: dropped character blink mode, now uses 256 entry (hub) palette
 '' 20181127: full 9x16 support
 '' 20181129: clean palette before use
+'' 20181206: re-introduced blink attribute
 ''
 CON
   CURSOR_ON    = %100
@@ -99,8 +100,9 @@ vsync           mov     ecnt, #13+2+(34-4)
 ' hsync offers 31 hub windows.
 
                 add     fcnt, #1                ' next frame
-                cmpsub  fcnt, #36               ' N frames per phase (on/off)
-
+                cmpsub  fcnt, #36 wz            ' N frames per phase (on/off)
+        if_z    rev     rcnt, #{32-}0           ' $F8000000 vs $0000001F
+        
                 cmp     locn, #0 wz             ' check cursor availability
                 mov     crs0, #0                ' default is disabled
         if_ne   rdlong  crs0, locn              ' override
@@ -197,12 +199,16 @@ char3_ret       ret
 
 load            muxnc   flag, $                 ' preserve carry flag
 
-                movd    :pix0, #pix+0           ' |
-                movd    :pix3, #pix-80          ' re/store initial settings
-                movd    :colN, #col+0           ' |
+                movd    :pix0_0, #pix+0         ' |
+                movd    :pix3_0, #pix-80        ' re/store initial settings
+                movd    :colN_0, #col+0         ' |
+
+                movd    :pix0_1, #pix+1         ' |
+                movd    :pix3_1, #pix-79        ' |
+                movd    :colN_1, #col+1         ' |
 
                 mov     addr, zwei              ' current screen base
-                mov     ecnt, #80               ' loop counter
+                mov     ecnt, #40               ' loop counter
 
 ' Fetch pixel data and colour.
 
@@ -210,31 +216,70 @@ load            muxnc   flag, $                 ' preserve carry flag
 
                 ror     frqb, #8                '  +8   palette index
                 mov     phsb, plte              '  -4   current palette location
-                rdword  colN, phsb              '  +0 = read palette entry
+                rdword  colN, phsb      {hub}   '  +0 = read palette entry
 
                 shr     frqb, #23               '  +8   ASCII *2
                 mov     phsb, eins              '  -4   current font address
-                rdlong  pix0, phsb              '  +0 = three scanlines + 1 pixel
+                rdlong  pix0, phsb      {hub}   '  +0 = three scanlines + 1 pixel
 
                 shr     frqb, #1                '  +8   ASCII *1
                 movd    frqb, #1024/512         '  -4   tail font address offset
                 add     frqb, eins              '  +0 = current font address
-                
-                shr     pix0, #1 wc             '  +4   extract top pixel
-:pix0           mov     0-0, pix0               '  +8   store scanlines 0..2
-                add     $-1, dst1               '  -4   |
 
-                rdbyte  pix3, frqb              '  +0 = remaining 8 pixels
-                muxc    pix3, #$100             '  +8   re-insert top pixel
-:pix3           mov     1-1, pix3               '  -4   store scanline 3
-                add     $-1, dst1               '  +0 = |
+                sub     addr, #2                '  +4   advance source
+                test    colN, #1 wz             '  +8   check mode
+                shr     pix0, #1 wc             '  -4   extract top pixel
+                
+                rdbyte  pix3, frqb      {hub}   '  +0 = remaining 8 pixels
+                muxc    pix3, #$100             '  +8   insert top pixel
+
+        if_nz   shr     pix0, rcnt              '  -4   1: modify foreground (0/31)
+        if_nz   shr     pix3, rcnt              '  +0 = 1: modify foreground (0/31)
 
                 and     colN, cmsk              '  +4   clean sync bits
                 or      colN, idle              '  +8   insert idle state
-:colN           mov     2-2, colN               '  -4   store palette
-                add     $-1, dst1               '  +0 = advance destination
 
-                sub     addr, #2                '  +4   advance source
+:pix0_0         mov     0-0, pix0               '  -4   store scanlines 0..2
+                add     $-1, dst2               '  +0 = |
+:pix3_0         mov     1-1, pix3               '  +4   store scanline 3
+                add     $-1, dst2               '  +8   |
+:colN_0         mov     2-2, colN               '  -4   store palette                   (**)
+
+                rdword  frqb, addr              '  +0 =
+
+                ror     frqb, #8                '  +8
+                mov     phsb, plte              '  -4
+                rdword  colN, phsb      {hub}   '  +0 =
+
+                shr     frqb, #23               '  +8
+                mov     phsb, eins              '  -4
+                rdlong  pix0, phsb      {hub}   '  +0 =
+
+                shr     frqb, #1                '  +8
+                movd    frqb, #1024/512         '  -4
+                add     frqb, eins              '  +0 =
+
+                sub     addr, #2                '  +4
+                test    colN, #1 wz             '  +8
+                shr     pix0, #1 wc             '  -4
+                
+                rdbyte  pix3, frqb      {hub}   '  +0 =
+                muxc    pix3, #$100             '  +8
+
+        if_nz   shr     pix0, rcnt              '  -4
+        if_nz   shr     pix3, rcnt              '  +0 =
+
+                and     colN, cmsk              '  +4
+                or      colN, idle              '  +8
+
+:pix0_1         mov     0-0, pix0               '  -4
+                add     $-1, dst2               '  +0 =
+:pix3_1         mov     1-1, pix3               '  +4
+                add     $-1, dst2               '  +8
+:colN_1         mov     2-2, colN               '  -4
+                add     $-1, dst2               '  +0 =
+
+                add     :colN_0, dst2           '  +4   |                               (**)
                 djnz    ecnt, #:loop            '  +8   for all characters
 
                 mov     vier, crs0
@@ -292,6 +337,7 @@ prep_ret        ret
 xmsk            long    $0000FF07               ' covers mode/x
 xlim            long    80 << 8                 ' park position
     
+rcnt            long    $0000001F               ' bit shift for blink mode
 fcnt            long    0                       ' blink frame count
 adv4            long    256*(4+1)*1             ' 4 scanlines in font
 adv8            long    256*(4+1)*2             ' 8 scanlines in font
@@ -311,6 +357,7 @@ locn_           long    $00000008 -12           ' |
 fcnt_           long    $0000000C -12           ' mailbox addresses (local copy)        (##)
 
 dst1            long    1 << 9                  ' dst     +/-= 1
+dst2            long    2 << 9                  ' dst     +/-= 2
 d1s1            long    1 << 9  | 1             ' dst/src +/-= 1
 
                 long    0[$&1]
