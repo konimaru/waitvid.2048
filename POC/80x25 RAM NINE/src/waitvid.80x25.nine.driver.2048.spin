@@ -2,8 +2,8 @@
 '' VGA display 80x25 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2018/12/06
-''       Version: 0.15.nine.5
+'' Last modified: 2018/12/07
+''       Version: 0.15.nine.6
 ''
 '' long[par][0]: vgrp:[!Z]:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer    (4n)
 '' long[par][1]:                addr:addr =      16:16 -> zero (accepted) palette/font     (2n/4n)
@@ -101,7 +101,7 @@ vsync           mov     ecnt, #13+2+(34-4)
 
                 add     fcnt, #1                ' next frame
                 cmpsub  fcnt, #36 wz            ' N frames per phase (on/off)
-        if_z    rev     rcnt, #{32-}0           ' $F8000000 vs $0000001F
+        if_z    rev     rcnt, #{32-}0           ' $F80000_00 vs $000000_1F; 70/(2*36), ~1Hz
         
                 cmp     locn, #0 wz             ' check cursor availability
                 mov     crs0, #0                ' default is disabled
@@ -307,7 +307,7 @@ cursor          test    vier, #%100 wz          ' cursor enabled?
         
                 ror     vier, #8 wc             ' carry: blink on/off
                 movd    :set, vier
-        if_c    cmp     fcnt, #18 wc
+        if_c    cmp     fcnt, #18 wc            ' 70/(2*18), ~2Hz
 :set    if_nc   xor     0-0, cmsk{2n}           ' cmsk: block      
                                                 ' pmsk: underscore
 cursor_ret      ret
