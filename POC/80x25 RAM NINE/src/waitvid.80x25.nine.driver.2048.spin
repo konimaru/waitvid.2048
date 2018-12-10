@@ -2,15 +2,15 @@
 '' VGA display 80x25 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2018/12/07
-''       Version: 0.15.nine.6
+'' Last modified: 2018/12/10
+''       Version: 0.15.nine.7
 ''
 '' long[par][0]: vgrp:[!Z]:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer    (4n)
 '' long[par][1]:                addr:addr =      16:16 -> zero (accepted) palette/font     (2n/4n)
 '' long[par][2]:                addr:addr =      16:16 -> zero (accepted) cursor locations (4n)
 '' long[par][3]: frame indicator/sync lock
 ''
-'' - character entries are words, i.e. attribute << 8 | ASCII
+'' - character entries are words, i.e. ASCII << 8 | attribute
 '' - top left corner is at highest screen memory address
 ''
 '' - cursor location:   $00000000: both cursors off
@@ -207,80 +207,79 @@ load            muxnc   flag, $                 ' preserve carry flag
                 movd    :pix3_1, #pix-79        ' |
                 movd    :colN_1, #col+1         ' |
 
+                mov     drei, dst2              ' |
+                add     drei, eins              ' tail font address (+1024)
+
                 mov     addr, zwei              ' current screen base
                 mov     ecnt, #40               ' loop counter
 
 ' Fetch pixel data and colour.
 
-:loop           rdword  frqb, addr              '  +0 = read ASCII + colour
+:loop           rdword  frqb, addr      {hub}   '  +0 = read ASCII + colour
 
-                ror     frqb, #8                '  +8   palette index
-                mov     phsb, plte              '  -4   current palette location
-                rdword  colN, phsb      {hub}   '  +0 = read palette entry
-
-                shr     frqb, #23               '  +8   ASCII *2
+                ror     frqb, #7                '  +8   ASCII *2 +{0..1}
                 mov     phsb, eins              '  -4   current font address
                 rdlong  pix0, phsb      {hub}   '  +0 = three scanlines + 1 pixel
 
-                shr     frqb, #1                '  +8   ASCII *1
-                movd    frqb, #1024/512         '  -4   tail font address offset
-                add     frqb, eins              '  +0 = current font address
-
-                sub     addr, #2                '  +4   advance source
-                test    colN, #1 wz             '  +8   check mode
-                shr     pix0, #1 wc             '  -4   extract top pixel
-                
+                ror     frqb, #1                '  +8   ASCII *1
+                add     frqb, drei              '  -4   font tail address
                 rdbyte  pix3, frqb      {hub}   '  +0 = remaining 8 pixels
-                muxc    pix3, #$100             '  +8   insert top pixel
 
-        if_nz   shr     pix0, rcnt              '  -4   1: modify foreground (0/31)
-        if_nz   shr     pix3, rcnt              '  +0 = 1: modify foreground (0/31)
+                shr     frqb, #24               '  +8   palette index
+                mov     phsb, plte              '  -4   current palette location
+                rdword  colN, phsb      {hub}   '  +0 = read palette entry
 
-                and     colN, cmsk              '  +4   clean sync bits
-                or      colN, idle              '  +8   insert idle state
+                sub     addr, #2                '  +8   advance source
+                test    colN, #1 wz             '  -4   check mode
+                shr     pix0, #1 wc             '  +0 = extract top pixel
+                muxc    pix3, #$100             '  +4   insert top pixel
 
-:pix0_0         mov     0-0, pix0               '  -4   store scanlines 0..2
-                add     $-1, dst2               '  +0 = |
-:pix3_0         mov     1-1, pix3               '  +4   store scanline 3
-                add     $-1, dst2               '  +8   |
-:colN_0         mov     2-2, colN               '  -4   store palette                   (**)
+        if_nz   shr     pix0, rcnt              '  +8   1: modify foreground (0/31)
+        if_nz   shr     pix3, rcnt              '  -4   1: modify foreground (0/31)
 
-                rdword  frqb, addr              '  +0 =
+                and     colN, cmsk              '  +0 = clean sync bits
+                or      colN, idle              '  +4   insert idle state
 
-                ror     frqb, #8                '  +8
-                mov     phsb, plte              '  -4
-                rdword  colN, phsb      {hub}   '  +0 =
+:pix0_0         mov     0-0, pix0               '  +8   store scanlines 0..2
+                add     $-1, dst2               '  -4   |
+:pix3_0         mov     1-1, pix3               '  +0 = store scanline 3
+                add     $-1, dst2               '  +4   |
+:colN_0         mov     2-2, colN               '  +8   store palette
+                add     $-1, dst2               '  -4   |
 
-                shr     frqb, #23               '  +8
+                rdword  frqb, addr      {hub}   '  +0 =
+
+                ror     frqb, #7                '  +8
                 mov     phsb, eins              '  -4
                 rdlong  pix0, phsb      {hub}   '  +0 =
 
-                shr     frqb, #1                '  +8
-                movd    frqb, #1024/512         '  -4
-                add     frqb, eins              '  +0 =
-
-                sub     addr, #2                '  +4
-                test    colN, #1 wz             '  +8
-                shr     pix0, #1 wc             '  -4
-                
+                ror     frqb, #1                '  +8
+                add     frqb, drei              '  -4
                 rdbyte  pix3, frqb      {hub}   '  +0 =
-                muxc    pix3, #$100             '  +8
 
-        if_nz   shr     pix0, rcnt              '  -4
-        if_nz   shr     pix3, rcnt              '  +0 =
+                shr     frqb, #24               '  +8
+                mov     phsb, plte              '  -4
+                rdword  colN, phsb      {hub}   '  +0 =
 
-                and     colN, cmsk              '  +4
-                or      colN, idle              '  +8
+                sub     addr, #2                '  +8
+                test    colN, #1 wz             '  -4
+                shr     pix0, #1 wc             '  +0 =
+                muxc    pix3, #$100             '  +4
 
-:pix0_1         mov     0-0, pix0               '  -4
-                add     $-1, dst2               '  +0 =
-:pix3_1         mov     1-1, pix3               '  +4
-                add     $-1, dst2               '  +8
-:colN_1         mov     2-2, colN               '  -4
-                add     $-1, dst2               '  +0 =
+        if_nz   shr     pix0, rcnt              '  +8
+        if_nz   shr     pix3, rcnt              '  -4
 
-                add     :colN_0, dst2           '  +4   |                               (**)
-                djnz    ecnt, #:loop            '  +8   for all characters
+                and     colN, cmsk              '  +0 =
+                or      colN, idle              '  +4
+
+:pix0_1         mov     0-0, pix0               '  +8
+                add     $-1, dst2               '  -4
+:pix3_1         mov     1-1, pix3               '  +0 =
+                add     $-1, dst2               '  +4
+:colN_1         mov     2-2, colN               '  +8
+                add     $-1, dst2               '  -4
+
+                djnz    ecnt, #:loop            '  +0 = for all characters
 
                 mov     vier, crs0
                 call    #cursor
@@ -393,6 +392,8 @@ setup           add     trap, par wc            ' carry set -> secondary
                 shr     plte, #16               ' |
 
                 rdlong  locn, locn_ wz          ' get cursor location                   (%%)
+                and     font, $+1               ' |
+                long    $0000FFFC               ' cleanup
         if_nz   wrlong  zero, locn_             ' acknowledge cursor location
 
 ' Perform pending setup.
@@ -471,7 +472,8 @@ crs0            res     1                       ' cursor 0 location and mode
 crs1            res     1                       ' cursor 1 location and mode
 
 eins            res     1
-zwei            res     1                       '                       < setup < 28    (%%)
+zwei            res     1                       '                       < setup +30     (%%)
+drei            res     1
 vier            res     1
 
 pix0            res     1

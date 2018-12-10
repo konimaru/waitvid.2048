@@ -2,8 +2,8 @@
 '' VGA display 80x25 (dual cog) - demo
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2018/12/06
-''       Version: 0.5
+'' Last modified: 2018/12/10
+''       Version: 0.6
 ''
 CON
   _clkmode = XTAL1|PLL16X
@@ -98,8 +98,8 @@ PRI printCharAt(x, y, attr, char)
   x //= columns                                         ' |
   y //= rows                                            ' optional
   
-  char.byte[1] := attr
-  scrn.word[bcnt_raw - y * columns - ++x] := char 
+  attr.byte[1] := char
+  scrn.word[bcnt_raw - y * columns - ++x] := attr 
 
 PRI printText(attr, s)
 
@@ -111,8 +111,8 @@ PRI printChar(attr, char) | x, y
   x := cursor.byte[CX]
   y := cursor.byte[CY]
   
-  char.byte[1] := attr
-  scrn.word[bcnt_raw - y * columns - ++x] := char
+  attr.byte[1] := char
+  scrn.word[bcnt_raw - y * columns - ++x] := attr
   ifnot x //= columns                                   ' wrap right
     y := ++y // rows                                    ' wrap bottom (page mode)
 
@@ -121,7 +121,7 @@ PRI printChar(attr, char) | x, y
   
 PRI clearScreen(attr)
 
-  wordfill(@scrn{0}, attr << 8 | $20, bcnt_raw)
+  wordfill(@scrn{0}, $2000 | attr, bcnt_raw)
   cursor.byte[CX] := cursor.byte[CY] := 0
   
 PRI setCursor(setup)
