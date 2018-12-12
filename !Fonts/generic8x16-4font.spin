@@ -2,6 +2,7 @@
 '' Font data (one bit/pixel, 8x16)
 ''
 ''   based on Bm437_IBM_VGA8 (c) 2016 VileR
+''   licensed under https://creativecommons.org/licenses/by-sa/4.0/
 ''
 ''        Author: Marko Lukat
 '' Last modified: 2018/12/12
