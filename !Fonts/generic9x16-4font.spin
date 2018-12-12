@@ -1,6 +1,8 @@
 ''
 '' Font data (one bit/pixel, 9x16)
 ''
+''   based on Bm437_IBM_VGA9 (c) 2016 VileR
+''
 ''        Author: Marko Lukat
 '' Last modified: 2018/11/28
 ''       Version: 0.3
