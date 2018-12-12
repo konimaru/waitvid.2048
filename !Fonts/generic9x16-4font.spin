@@ -2,10 +2,11 @@
 '' Font data (one bit/pixel, 9x16)
 ''
 ''   based on Bm437_IBM_VGA9 (c) 2016 VileR
+''   licensed under https://creativecommons.org/licenses/by-sa/4.0/
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2018/11/28
-''       Version: 0.3
+'' Last modified: 2018/12/12
+''       Version: 0.4
 ''        Layout: four scan lines per character (see below)
 ''
 ''
