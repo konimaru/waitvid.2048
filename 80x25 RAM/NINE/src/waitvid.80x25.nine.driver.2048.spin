@@ -361,7 +361,7 @@ d1s1            long    1 << 9  | 1             ' dst/src +/-= 1
 
                 long    0[$&1]
 cmsk    {2n}    long    %%3330_3330             ' xor mask for block cursor
-pmsk    {2n+1}  long    %%0_03333_03333_00000   ' xor mask for underscore cursor (updated for secondary)
+pmsk    {2n+1}  long    %%0_03333_00000_00000   ' xor mask for underscore cursor (updated for secondary)
 
 ' Stuff below is re-purposed for temporary storage.
 
