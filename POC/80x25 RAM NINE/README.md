@@ -1,2 +1,2 @@
 - left POC state
-- relocated to [waitvid.2048/80x25 RAM/NINE](https://github.com/konimaru/waitvid.2048/tree/master/80x25%20RAM/NINE)
+- relocated to [waitvid.2048/80x25 RAM/NINE](../../80x25%20RAM/NINE)
