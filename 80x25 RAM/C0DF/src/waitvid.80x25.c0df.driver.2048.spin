@@ -2,8 +2,8 @@
 '' VGA display 80x25 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2018/12/13
-''       Version: 0.15.c0df.1
+'' Last modified: 2018/12/15
+''       Version: 0.15.c0df.2
 ''
 '' long[par][0]: vgrp:[!Z]:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer    (4n)
 '' long[par][1]:                addr:addr =      16:16 -> zero (accepted) palette/font     (2n/4n)
@@ -35,6 +35,7 @@
 '' 20181124: dropped character blink mode, now uses 256 entry (hub) palette
 '' 20181127: full 9x16 support
 '' 20181213: reworked for MDA like behaviour, $C0..$DF have column duplication
+'' 20181215: sync-isolation
 ''
 CON
   CURSOR_ON    = %100
@@ -135,6 +136,9 @@ vsync           mov     ecnt, #13+2+(34-4)
 
                 call    #load                   ' load pixels and colours for the next four lines
 
+                add     cnt, $+1                ' adjust sync point by 4 scanlines
+                long    (900*4*80000)/28322
+
                 call    #char0                  ' |
                 call    #char1                  ' |
                 call    #char0                  ' display scanlines
@@ -159,12 +163,22 @@ blank           mov     vscl, line              ' 180/720
 
 hsync           mov     vscl, wrap              ' |
                 waitvid sync, #%0001111110      ' horizontal sync pulse (1/6/3 reverse)
-                mov     cnt, cnt                ' record sync point
+
+                mov     vcfg, vcfg_sync         ' drive sync lines                      (&&)
+                mov     outa, #0                ' stop interfering
+                
+                mov     cnt, cnt                ' record sync point                     (**)
+                add     cnt, #9{14}+400         ' relaxed timing
 hsync_ret
 blank_ret       ret
 
 
-char0           movd    :one, #pix+0            ' |
+char0           waitcnt cnt, #0                 ' re-sync after back porch              (**)
+
+                mov     outa, idle              ' take over sync lines
+                mov     vcfg, vcfg_norm         ' disconnect from video h/w             (&&)
+
+                movd    :one, #pix+0            ' |
                 movs    :two, #pix+0            ' |
                 movd    :two, #col+0            ' restore initial settings
 
@@ -181,7 +195,12 @@ char0           movd    :one, #pix+0            ' |
 char0_ret       ret
 
 
-char1           movd    :one, #pix-80           ' |
+char1           waitcnt cnt, #0                 ' re-sync after back porch              (**)
+
+                mov     outa, idle              ' take over sync lines
+                mov     vcfg, vcfg_norm         ' disconnect from video h/w             (&&)
+
+                movd    :one, #pix-80           ' |
                 movs    :two, #pix-80           ' |
                 movd    :two, #col+0            ' restore initial settings
 
@@ -361,6 +380,9 @@ font_           long    $00000004 -12           ' |
 locn_           long    $00000008 -12           ' |
 fcnt_           long    $0000000C -12           ' mailbox addresses (local copy)        (##)
 
+vcfg_norm       long    %0_01_0_00_000 << 23
+vcfg_sync       long    %0_01_0_00_000 << 23 | %00000011
+
 dst1            long    1 << 9                  ' dst     +/-= 1
 dst2            long    2 << 9                  ' dst     +/-= 2
 d1s1            long    1 << 9  | 1             ' dst/src +/-= 1
@@ -431,9 +453,11 @@ setup           add     trap, par wc            ' carry set -> secondary
                 mov     vscl, #1                ' reload as fast as possible
                 mov     zwei, scrn              ' vgrp:[!Z]:vpin:[!Z]:scrn = 2:1:8:5:16 (%%)
                 shr     zwei, #5+16             ' |
-                or      zwei, #%%000_3          ' |
-                mov     vcfg, zwei              ' set vgrp and vpin
-                movi    vcfg, #%0_01_0_00_000   ' VGA, 2 colour mode
+                andn    zwei, #%%000_3          ' |
+                or      vcfg_norm, zwei         ' | group + %%RGB_0
+                shr     zwei, #9                ' |
+                movd    vcfg_sync, zwei         ' | group + %%000_3
+                mov     vcfg, vcfg_sync         ' VGA, 2 colour mode
 
                 waitcnt temp, #0                ' PLL settled, frame counter flushed
                                                   
@@ -443,7 +467,10 @@ setup           add     trap, par wc            ' carry set -> secondary
                 waitpne $, #0                   ' get some distance
                 waitvid zero, #0                ' latch user value
 
-                and     mask, vcfg              ' transfer vpin
+                mov     temp, vcfg_norm         ' |
+                or      temp, vcfg_sync         ' |
+                and     mask, temp              ' transfer vpin
+                
                 mov     temp, vcfg              ' |
                 shr     temp, #9                ' extract vgrp
                 shl     temp, #3                ' 0..3 >> 0..24

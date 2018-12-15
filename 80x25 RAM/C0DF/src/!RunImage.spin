@@ -2,8 +2,8 @@
 '' VGA display 80x25 (dual cog) - demo
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2018/12/13
-''       Version: 0.1
+'' Last modified: 2018/12/15
+''       Version: 0.2
 ''
 CON
   _clkmode = XTAL1|PLL16X
@@ -46,11 +46,6 @@ VAR
   long  cursor                                          ' text cursor
   
 PUB selftest : n
-
-  repeat 256
-    palette[n] &= %%3330_3330
-    palette[n] |= %%0002_0002
-    n++
 
   link{0} := video | @scrn{0}
   link[1] := @palette << 16 | font.addr
