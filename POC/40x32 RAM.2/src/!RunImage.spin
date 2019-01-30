@@ -2,20 +2,17 @@
 '' VGA driver 320x256 (single cog) - demo
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2019/01/26
-''       Version: 0.1
+'' Last modified: 2019/01/30
+''       Version: 0.2
 ''
 CON
   _clkmode = XTAL1|PLL16X
   _xinfreq = 5_000_000
 
 CON
-  columns  = driver#res_x / 9
-  rows     = driver#res_y / font#height
+  columns  = driver#res_x / 8
+  rows     = driver#res_y
   bcnt     = columns * rows
-
-  rows_raw = (driver#res_y + font#height - 1) / font#height
-  bcnt_raw = columns * rows_raw
 
 CON
   vgrp     = 2                                          ' video pin group
@@ -25,29 +22,40 @@ CON
 
 OBJ
   driver: "waitvid.320x256.driver.2048"
-    font: "generic8x16-4font"
+    font: "generic8x8-1font"
   
 VAR
-  long  scrn[bcnt_raw / 2]                              ' screen buffer
+  byte  scrn[bcnt]                                      ' screen buffer
+  byte  attr[bcnt]                                      ' colour buffer
   long  link[driver#res_m]                              ' mailbox
-
-  long  cursor                                          ' text cursor
+  long  base
   
-PUB selftest : n
+PUB selftest : n | x, y
+
+  init
+
+  repeat y from 0 to 31
+    repeat x from 0 to 39
+      print(x, y, n, n++)
+
+PRI init
 
   link{0} := video | @scrn{0}
-  link[1] := font.addr
+  link[1] := @attr{0}
 
   driver.init(-1, @link{0})                             ' start driver
-{
-' setCursor(CURSOR_ON|CURSOR_ULINE|CURSOR_FLASH)
 
-  repeat bcnt                                           ' fill screen
-    printChar(n, n++)
+  base := font.addr
+  
+PRI print(x, y, c, col) : b
 
-  block( 5, 1, $30)
-  block(23, 1, $20)
-  block(41, 1, $50)
-  block(59, 1, $70)
-'}
+  b := x + y * 320
+  c &= 255
+  
+  repeat 8
+    scrn[b] := byte[base][c]
+    attr[b] := col
+    b += 40
+    c += 256
+  
 DAT

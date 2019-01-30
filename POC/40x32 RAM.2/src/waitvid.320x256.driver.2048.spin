@@ -2,8 +2,8 @@
 '' VGA driver 320x256 (single cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2019/01/26
-''       Version: 0.1
+'' Last modified: 2019/01/30
+''       Version: 0.2
 ''
 '' long[par][0]: vgrp:[!Z]:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer
 '' long[par][1]:                [!Z]:addr =      16:16 -> zero (accepted) colour buffer
@@ -13,7 +13,7 @@
 '' acknowledgements
 '' - loader code based on work done by Phil Pilgrim (PhiPi)
 ''
-'' 201901xx:
+'' 20190130: initial release
 ''
 OBJ
   system: "core.con.system"
@@ -51,21 +51,21 @@ driver          jmpret  $, #setup               '  -4   once
 ' A palette entry holds two pairs of FG/BG colours (high word: blink colours, low word: normal colours).
 
                 long               $0C00000C, $30000030, $3C00003C, $C00000C0, $CC0000CC, $F00000F0, $FC0000FC
-                long    $00000800, $0C00080C, $30000830, $3C00083C, $C00008C0, $CC0008CC, $F00008F0, $FC0008FC
-                long    $00001000, $0C00100C, $30001030, $3C00103C, $C00010C0, $CC0010CC, $F00010F0, $FC0010FC
-                long    $00001800, $0C00180C, $30001830, $3C00183C, $C00018C0, $CC0018CC, $F00018F0, $FC0018FC
-                long    $00002000, $0C00200C, $30002030, $3C00203C, $C00020C0, $CC0020CC, $F00020F0, $FC0020FC
-                long    $00002800, $0C00280C, $30002830, $3C00283C, $C00028C0, $CC0028CC, $F00028F0, $FC0028FC
-                long    $00003000, $0C00300C, $30003030, $3C00303C, $C00030C0, $CC0030CC, $F00030F0, $FC0030FC
-                long    $00003800, $0C00380C, $30003830, $3C00383C, $C00038C0, $CC0038CC, $F00038F0, $FC0038FC
-                long    $00008000, $0C00800C, $30008030, $3C00803C, $C00080C0, $CC0080CC, $F00080F0, $FC0080FC
-                long    $00008800, $0C00880C, $30008830, $3C00883C, $C00088C0, $CC0088CC, $F00088F0, $FC0088FC
-                long    $00009000, $0C00900C, $30009030, $3C00903C, $C00090C0, $CC0090CC, $F00090F0, $FC0090FC
-                long    $00009800, $0C00980C, $30009830, $3C00983C, $C00098C0, $CC0098CC, $F00098F0, $FC0098FC
-                long    $0000A000, $0C00A00C, $3000A030, $3C00A03C, $C000A0C0, $CC00A0CC, $F000A0F0, $FC00A0FC
-                long    $0000A800, $0C00A80C, $3000A830, $3C00A83C, $C000A8C0, $CC00A8CC, $F000A8F0, $FC00A8FC
-                long    $0000B000, $0C00B00C, $3000B030, $3C00B03C, $C000B0C0, $CC00B0CC, $F000B0F0, $FC00B0FC
-                long    $0000B800, $0C00B80C, $3000B830, $3C00B83C, $C000B8C0, $CC00B8CC, $F000B8F0, $FC00B8FC
+                long    $00080800, $0C08080C, $30080830, $3C08083C, $C00808C0, $CC0808CC, $F00808F0, $FC0808FC
+                long    $00101000, $0C10100C, $30101030, $3C10103C, $C01010C0, $CC1010CC, $F01010F0, $FC1010FC
+                long    $00181800, $0C18180C, $30181830, $3C18183C, $C01818C0, $CC1818CC, $F01818F0, $FC1818FC
+                long    $00202000, $0C20200C, $30202030, $3C20203C, $C02020C0, $CC2020CC, $F02020F0, $FC2020FC
+                long    $00282800, $0C28280C, $30282830, $3C28283C, $C02828C0, $CC2828CC, $F02828F0, $FC2828FC
+                long    $00303000, $0C30300C, $30303030, $3C30303C, $C03030C0, $CC3030CC, $F03030F0, $FC3030FC
+                long    $00383800, $0C38380C, $30383830, $3C38383C, $C03838C0, $CC3838CC, $F03838F0, $FC3838FC
+                long    $00808000, $0C80800C, $30808030, $3C80803C, $C08080C0, $CC8080CC, $F08080F0, $FC8080FC
+                long    $00888800, $0C88880C, $30888830, $3C88883C, $C08888C0, $CC8888CC, $F08888F0, $FC8888FC
+                long    $00909000, $0C90900C, $30909030, $3C90903C, $C09090C0, $CC9090CC, $F09090F0, $FC9090FC
+                long    $00989800, $0C98980C, $30989830, $3C98983C, $C09898C0, $CC9898CC, $F09898F0, $FC9898FC
+                long    $00A0A000, $0CA0A00C, $30A0A030, $3CA0A03C, $C0A0A0C0, $CCA0A0CC, $F0A0A0F0, $FCA0A0FC
+                long    $00A8A800, $0CA8A80C, $30A8A830, $3CA8A83C, $C0A8A8C0, $CCA8A8CC, $F0A8A8F0, $FCA8A8FC
+                long    $00B0B000, $0CB0B00C, $30B0B030, $3CB0B03C, $C0B0B0C0, $CCB0B0CC, $F0B0B0F0, $FCB0B0FC
+                long    $00B8B800, $0CB8B80C, $30B8B830, $3CB8B83C, $C0B8B8C0, $CCB8B8CC, $F0B8B8F0, $FCB8B8FC
 
 ' horizontal timing 320(1280) 6(48) 14(112) 31(248)
 '   vertical timing 256(1024) 1(1)   3(3)   38(38)
@@ -73,6 +73,10 @@ driver          jmpret  $, #setup               '  -4   once
 '               mov     ecnt, #1
 vsync           call    #blank                  ' front porch
 '               djnz    ecnt, #$-1
+
+                add     fcnt, #1                ' next frame
+                cmpsub  fcnt, #30 wz            ' N frames per phase (on/off)
+        if_z    rev     rmsk, #{32-}0           ' 16 vs 0; 60/(2*30), ~1Hz
 
                 xor     sync, #$0101            ' active
 
@@ -94,20 +98,28 @@ vsync           call    #blank                  ' front porch
 
                 mov     scnt, #res_y /2         ' 256 quad scanlines (split between primary and secondary)
 
-:scan           mov     vscl, many              ' four lines we don't use
-                waitvid zero, #0                ' 312 hub windows
+                mov     eins, scrn              ' screen base
+                mov     drei, attr              ' colour info
 
-' load first 20 bytes/colours
+        if_nc   add     eins, #res_x /8         ' |
+        if_nc   add     drei, #res_x /8         ' interleaved
 
-                mov     vscl, many              ' |
-                waitvid zero, #0                ' |
+:scan           mov     vscl, #0                ' four lines we don't use
+                waitvid zero, #0                ' ~316 hub windows
 
-' load remaining 20 bytes/colours
+                call    #load                   ' load pixels and colours for the next line
+                
+                mov     vscl, #484
+                waitvid zero, #0
+                waitvid zero, #0
 
-                call    #blank                  ' |
-                call    #blank                  ' |
-                call    #blank                  ' display scanlines
-                call    #blank                  ' |
+                add     cnt, $+1                ' adjust sync point by 4 scanlines
+                long    (1266*4*80000)/80000
+
+                call    #emit                   ' |
+                call    #emit                   ' |
+                call    #emit                   ' display scanlines
+                call    #emit                   ' |
 
                 djnz    scnt, #:scan            ' for all rows
 
@@ -125,26 +137,78 @@ blank           mov     vscl, phsa              ' 256/960
 
 hsync           mov     vscl, wrap              '   6/306
                 waitvid sync, wrap_value
+
+                mov     vcfg, vcfg_sync         ' drive sync lines                      (&&)
+                mov     outa, #0                ' stop interfering
+                
+                mov     cnt, cnt                ' record sync point                     (**)
+                add     cnt, #9{14}+200         ' relaxed timing
 hsync_ret
 blank_ret       ret
 
+
+load            muxnc   flag, $                 ' preserve carry flag
+
+                movd    :loop, #pix+0           ' |
+                movd    :colN, #col+0           ' re/store initial settings
+
+                mov     ecnt, #res_x /8         ' column count
+                
+' Fetch pixel data and colour for all columns.
+
+:loop           rdbyte  0-0, eins               ' pixel data
+                add     $-1, dst1               ' advance dst                           (px)
+                add     eins, #1                ' advance src                           (px)
+
+                rdbyte  temp, drei              ' corresponding colour byte
+                cmpsub  temp, #%1_0000_000 wc   ' extract blink bit
+                movs    :xfer, temp             ' prep index
+
+                add     drei, #1                ' advance src                           (cc)
+:xfer           mov     temp, 0-0               ' load palette entry
+        if_c    shr     temp, rmsk              ' select alternate palette
+
+:colN           mov     1-1, temp               ' store final palette
+                add     $-1, dst1               ' advance dst                           (cc)
+
+                djnz    ecnt, #:loop            ' for all columns
+
+                add     eins, #res_x /8         ' |
+                add     drei, #res_x /8         ' skip one scanline (primary/secondary)
+
+load_ret        jmpret  flag, #0-0 nr,wc        ' restore carry flag
+
+
+emit            waitcnt cnt, #0                 ' re-sync after back porch              (**)
+
+                mov     outa, idle              ' take over sync lines
+                mov     vcfg, vcfg_norm         ' disconnect from video h/w             (&&)
+
+                movs    :two, #pix+0            ' |
+                movd    :two, #col+0            ' restore initial settings
+
+                mov     vscl, hvis              ' 3/24, speed up
+                mov     ecnt, #res_x /8         ' byte count
+
+:loop           add     :two, d1s1              ' advance (pipeline)
+:two            waitvid 0-0, 1-1                ' emit pixels
+                djnz    ecnt, #:loop            ' for all columns
+
+                call    #hsync                  ' timing requirement
+emit_ret        ret
+
 ' initialised data and/or presets
 
-'xmsk           long    $0000FF07               ' covers mode/x
-'xlim           long    80 << 8                 ' park position
-    
-'fcnt           long    0                       ' blink frame count
-'adv4           long    256*(4+0)*1             ' 4 scanlines in font
-'adv8           long    256*(4+0)*2             ' 8 scanlines in font
+rmsk            long    16                      ' master for blink mode
+fcnt            long    0                       ' blink frame count
 
-'flag           long    0                       ' loader flag storage
-'idle           long    hv_idle
+flag            long    0                       ' loader flag storage
+idle            long    hv_idle
 sync            long    hv_idle ^ $0200
 
 wrap_value      long    $000FFFC0               ' 31/14/6
 wrap            long     6 << 12 | 306          '   2/102
-'hvis           long     1 << 12 | 9            '   1/9
-many            long     0 << 12 | 2532         ' 256/2532 (2 scanlines worth)
+hvis            long     3 << 12 | 24           '   3/24
 
 scrn_           long    $00000000 -12           ' |
 attr_           long    $00000004 -12           ' |
@@ -153,21 +217,8 @@ fcnt_           long    $0000000C -12           ' mailbox addresses (local copy)
 vcfg_norm       long    %0_01_0_00_000 << 23
 vcfg_sync       long    %0_01_0_00_000 << 23 | %00000011
 
-'dst1           long    1 << 9                  ' dst     +/-= 1
-'dst2           long    2 << 9                  ' dst     +/-= 2
-'d1s1           long    1 << 9  | 1             ' dst/src +/-= 1
-'i2s3           long    2 << 23 | 3
-
-'               long    0[$&1]
-'cmsk   {2n}    long    %%3330_3330             ' xor mask for block cursor
-'pmsk   {2n+1}  long    %%0000_0000_0000_3333   ' xor mask for underscore cursor (updated for secondary)
-
-'rmsk           long    $FFFFFFFF               ' master for blink mode
-'rxor           long    0                       ' pixel mask
-
-'h80808080      long    $80808080               ' |
-'h01800180      long    $01800180               ' |
-'h00FF00FF      long    $00FF00FF               ' misc patterns
+dst1            long    1 << 9                  ' dst     +/-= 1
+d1s1            long    1 << 9  | 1             ' dst/src +/-= 1
 
 ' Stuff below is re-purposed for temporary storage.
 
@@ -264,7 +315,12 @@ scnt            res     1                       ' scanline count
 
 temp            res     1                       '                       < setup + 7     (%%)
 
+eins            res     1
 zwei            res     1                       '                       < setup +23     (%%)
+drei            res     1
+
+pix             res     40
+col             res     40
 
 tail            fit
                 
