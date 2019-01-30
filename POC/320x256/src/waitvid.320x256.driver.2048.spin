@@ -1,5 +1,5 @@
 ''
-'' VGA driver 320x256 (single cog) - video driver and pixel generator
+'' VGA driver 320x256 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
 '' Last modified: 2019/01/30

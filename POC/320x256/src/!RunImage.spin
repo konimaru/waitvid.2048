@@ -1,5 +1,5 @@
 ''
-'' VGA driver 320x256 (single cog) - demo
+'' VGA driver 320x256 (dual cog) - demo
 ''
 ''        Author: Marko Lukat
 '' Last modified: 2019/01/30
@@ -27,6 +27,7 @@ OBJ
 VAR
   byte  scrn[bcnt]                                      ' screen buffer
   byte  attr[bcnt]                                      ' colour buffer
+
   long  link[driver#res_m]                              ' mailbox
   long  base
   
@@ -36,7 +37,8 @@ PUB selftest : n | x, y
 
   repeat y from 0 to 31
     repeat x from 0 to 39
-      print(x, y, n, n++)
+      print(x, y, n, n)
+      n++
 
 PRI init
 
