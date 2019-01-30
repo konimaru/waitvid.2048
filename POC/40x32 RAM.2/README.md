@@ -1,6 +1,6 @@
-VGA display 80x25 (720x400)
+VGA display 320x256 (1280x1024)
 -----------------
  - dual cog
- - RAM font (**8x16**, 4K)
- - paletted mode (256 user-definable entries, blink mode, 0K5)
- - two text cursors
+ - one bit/pixel
+ - paletted mode (40x**256**, 128 colour pairs, blink mode)
+ 
