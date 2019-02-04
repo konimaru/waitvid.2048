@@ -48,17 +48,6 @@ PUB selftest : n | x, y
   repeat                                                  
     fill_1
 
-PRI print2(x, y, c, col) : b
-
-  b := x + y * 320
-  c &= 255
-  
-  repeat 8
-    scrn[b] := byte[base][c]
-    attr[b] := col
-    b += 40
-    c += 256
-  
 PRI fill_1 : n | x, y
 
   repeat y from 0 to 31         
