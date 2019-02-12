@@ -2,8 +2,8 @@
 '' VGA driver 320x256 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2019/01/30
-''       Version: 0.2
+'' Last modified: 2019/02/12
+''       Version: 0.2.yx.1
 ''
 '' long[par][0]: vgrp:[!Z]:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer
 '' long[par][1]:                [!Z]:addr =      16:16 -> zero (accepted) colour buffer
@@ -14,6 +14,7 @@
 '' - loader code based on work done by Phil Pilgrim (PhiPi)
 ''
 '' 20190130: initial release
+'' 20190212: yx variant
 ''
 OBJ
   system: "core.con.system"
