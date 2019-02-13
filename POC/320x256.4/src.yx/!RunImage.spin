@@ -2,8 +2,8 @@
 '' VGA driver 320x256 (dual cog) - demo
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2019/01/30
-''       Version: 0.2
+'' Last modified: 2019/02/13
+''       Version: 0.2.yx.1
 ''
 CON
   _clkmode = XTAL1|PLL16X
@@ -55,34 +55,36 @@ PRI fill_1 : n | x, y
       print(x, y, n++, ?frqb & mbyte)
       waitcnt(clkfreq/120 + cnt)
 
-  x := scroll
+  scroll
 
-  repeat n from 0 to 2559
-    ifnot n // 10
-      repeat 10
-        attr[x++] := ?frqb & mlong
-    scrn[n] := ?frqa
-    waitcnt(clkfreq/480 + cnt)
-
+  repeat x from 39 to 0
+    repeat 1
+      waitVBL
+    n := x << 6
+    repeat 64
+      scrn[n]   := ?frqa
+      attr[n++] := ?frqb & mlong
+     
   scroll
   
 PRI print(x, y, c, col) : b
 
-  b := x + y * 320
+  b := x << 8 + y << 3
   c &= 255
   
   repeat 8
     scrn.byte[b] := byte[base][c]
     attr.byte[b] := col
-    b += 40
+    b += 1
     c += 256
   
 PRI scroll
 
-  repeat 256
-    waitVBL
-    longmove(@attr{0}, @attr[10], constant(bcnt /4 - 10))
-    longfill(@attr[constant(bcnt /4 - 10)], $29292929, 10)
+  repeat 40
+    repeat 1
+      waitVBL
+    longmove(@attr{0}, @attr[64], constant(bcnt /4 - 64))
+    longfill(@attr[constant(bcnt /4 - 64)], $29292929, 64)
     
 PRI waitVBL : n
 

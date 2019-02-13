@@ -2,8 +2,8 @@
 '' VGA driver 320x256 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2019/01/30
-''       Version: 0.2
+'' Last modified: 2019/02/13
+''       Version: 0.2.yx.1
 ''
 '' long[par][0]: vgrp:[!Z]:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer
 '' long[par][1]:                [!Z]:addr =      16:16 -> zero (accepted) colour buffer
@@ -14,6 +14,7 @@
 '' - loader code based on work done by Phil Pilgrim (PhiPi)
 ''
 '' 20190130: initial release
+'' 20190213: yx variant
 ''
 OBJ
   system: "core.con.system"
@@ -101,8 +102,8 @@ vsync           call    #blank                  ' front porch
                 mov     eins, scrn              ' screen base
                 mov     drei, attr              ' colour info
 
-        if_nc   add     eins, #res_x /8         ' |
-        if_nc   add     drei, #res_x /8         ' interleaved
+        if_nc   add     eins, #1                ' |
+        if_nc   add     drei, #1                ' interleaved
 
 :scan           mov     vscl, #0                ' four lines we don't use
                 waitvid zero, #0                ' ~316 hub windows
@@ -158,13 +159,13 @@ load            muxnc   flag, $                 ' preserve carry flag
 
 :loop           rdbyte  0-0, eins               ' pixel data
                 add     $-1, dst1               ' advance dst                           (px)
-                add     eins, #1                ' advance src                           (px)
+                add     eins, #256              ' advance src                           (px)
 
                 rdbyte  temp, drei              ' corresponding colour byte
                 cmpsub  temp, #%1_0000_000 wc   ' extract blink bit
                 movs    :xfer, temp             ' prep index
 
-                add     drei, #1                ' advance src                           (cc)
+                add     drei, #256              ' advance src                           (cc)
 :xfer           mov     temp, 0-0               ' load palette entry
         if_c    shr     temp, rmsk              ' select alternate palette
 
@@ -173,8 +174,8 @@ load            muxnc   flag, $                 ' preserve carry flag
 
                 djnz    ecnt, #:loop            ' for all columns
 
-                add     eins, #res_x /8         ' |
-                add     drei, #res_x /8         ' skip one scanline (primary/secondary)
+                add     eins, rwnd              ' |
+                add     drei, rwnd              ' skip one scanline (primary/secondary)
 
 load_ret        jmpret  flag, #0-0 nr,wc        ' restore carry flag
 
@@ -201,6 +202,7 @@ emit_ret        ret
 
 rmsk            long    16                      ' master for blink mode
 fcnt            long    0                       ' blink frame count
+rwnd            long    -256 *(res_x /8) +2     ' row adjustment
 
 flag            long    0                       ' loader flag storage
 idle            long    hv_idle
