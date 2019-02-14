@@ -4,7 +4,7 @@ VGA display 320x256 (1280x1024)
  - one bit/pixel
  - paletted mode (40x**256**, 128 colour pairs, blink mode)
   
- **src: (40y +x)**
+ **src: 40y+x**
  ```
  +----------+----------+----------+---
 |   base   |    +1    |    +2    |
@@ -16,7 +16,7 @@ VGA display 320x256 (1280x1024)
 |
  ```
 
-**src.yx: (256x +y)**
+**src.yx: 256x+y**
 ```
 +----------+----------+----------+---
 |   base   |   +256   |   +512   |
