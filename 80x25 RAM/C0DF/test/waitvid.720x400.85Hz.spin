@@ -1,5 +1,5 @@
 ''
-'' VGA driver test 720x400@70Hz
+'' VGA driver test 720x400@85Hz
 ''
 ''        Author: Marko Lukat
 '' Last modified: 2019/04/19
@@ -26,21 +26,22 @@ DAT             org     0                       ' video driver
 
 driver          jmpret  $, #setup               '  -4   once
 
-' horizontal timing 720(720)  1(18) 6(108) 3(54)
-'   vertical timing 400(400) 13(13) 2(2)  34(34)
+' horizontal timing 720(720) 1(36) 2(72) 3(108)
+'   vertical timing 400(400) 1(1)  3(3)  42(42)
 
-vsync           mov     ecnt, #13
-                call    #blank                  ' front porch
-                djnz    ecnt, #$-1
+'               mov     ecnt, #1
+vsync           call    #blank                  ' front porch
+'               djnz    ecnt, #$-1
 
                 xor     sync, #$0101            ' active
 
-                call    #blank
+                mov     ecnt, #3
                 call    #blank                  ' vertical sync
+                djnz    ecnt, #$-1
 
                 xor     sync, #$0101            ' inactive
 
-                mov     ecnt, #34
+                mov     ecnt, #42
                 call    #blank                  ' back porch
                 djnz    ecnt, #$-1
 
@@ -62,7 +63,7 @@ blank           mov     vscl, line              ' 180/720
                 waitvid sync, #%0000            ' latch blank line
 
 hsync           mov     vscl, wrap              ' |
-                waitvid sync, #%0001111110      ' horizontal sync pulse (1/6/3 reverse)
+                waitvid sync, #%000110          ' horizontal sync pulse (1/2/3 reverse)
 hsync_ret
 blank_ret       ret
 
@@ -92,7 +93,7 @@ emit1_ret       ret
 
 sync            long    hv_idle ^ $0200
                         
-wrap            long     18 << 12 | 180         '  18/180
+wrap            long     36 << 12 | 216         '  36/216
 hvis            long      1 << 12 | 18          '   1/18
 line            long    180 << 12 | 720         ' 180/720
 
@@ -107,8 +108,8 @@ setup
 
 ' Upset video h/w and relatives.
 
-                movi    ctra, #%0_00001_101     ' PLL, VCO/4
-                mov     frqa, frqx              ' 28.322MHz
+                movi    ctra, #%0_00001_110     ' PLL, VCO/2
+                mov     frqa, frqx              ' 35.5MHz
 
                 mov     vscl, line              ' transfer user value
                 movd    vcfg, #vgrp
@@ -123,7 +124,7 @@ setup
 
 ' Local data, used only once.
 
-frqx            long    $16A85879               ' 28.322MHz
+frqx            long    $0E333333               ' 35.5MHz
 mask            long    vpin << (vgrp * 8)
 
 EOD{ata}        fit
