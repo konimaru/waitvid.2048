@@ -3,7 +3,7 @@
 ''
 ''        Author: Marko Lukat
 '' Last modified: 2019/04/26
-''       Version: 0.2
+''       Version: 0.3
 ''
 '' 20190424: initial release
 ''
@@ -59,7 +59,7 @@ vsync           mov     ecnt, #9+6+30
 blank           mov     vscl, line              ' 256/720
                 waitvid sync, #%0000            ' latch blank line
 
-hsync           mov     vscl, #16               ' 256/16
+hsync           mov     vscl, #16 *3            ' 256/16
                 waitvid sync, #%0000            ' front
 
                 mov     vscl, wrap              '  62/122
@@ -91,14 +91,14 @@ emit1_ret       ret
 
 sync            long    hv_idle ^ $0200
                         
-wrap            long     62 << 12 | 122         '  62/122
-hvis            long      1 << 12 | 18          '   1/18
-line            long      0 << 12 | 720         ' 256/720
+wrap            long    186 << 12 | 366         '  62/122
+hvis            long      3 << 12 | 54          '   1/18
+line            long      0 << 12 | 2160        ' 256/720
 
 p0              long    %010101010_101010101
 p1              long    %101010101_010101010
 
-plte            long    $0000A804 | hv_idle
+plte            long    $00002804 | hv_idle
 
 ' Stuff below is re-purposed for temporary storage.
 
@@ -106,9 +106,9 @@ setup
 
 ' Upset video h/w and relatives.
 
-                movi    ctra, #%0_00001_101     ' PLL, VCO/4
-                mov     frqa, frqx              ' 6.73828125 * 16/4 = 26.953125MHz
-                
+                movi    ctra, #%0_00001_111     ' PLL, VCO/1
+                movi    frqa, #%0001_00000      ' 80MHz
+
                 mov     vscl, line              ' transfer user value
                 movd    vcfg, #vgrp
                 movs    vcfg, #vpin
@@ -122,7 +122,6 @@ setup
 
 ' Local data, used only once.
 
-frqx            long    $15900000               ' 26.953125MHz
 mask            long    vpin << (vgrp * 8)
 
 EOD{ata}        fit
