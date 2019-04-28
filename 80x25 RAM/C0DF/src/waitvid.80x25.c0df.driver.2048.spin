@@ -2,8 +2,8 @@
 '' VGA display 80x25 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2018/12/15
-''       Version: 0.15.c0df.2
+'' Last modified: 2019/04/28
+''       Version: 0.15.c0df.3
 ''
 '' long[par][0]: vgrp:[!Z]:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer    (4n)
 '' long[par][1]:                addr:addr =      16:16 -> zero (accepted) palette/font     (2n/4n)
@@ -36,6 +36,7 @@
 '' 20181127: full 9x16 support
 '' 20181213: reworked for MDA like behaviour, $C0..$DF have column duplication
 '' 20181215: sync-isolation
+'' 20190428: clean-up
 ''
 CON
   CURSOR_ON    = %100
@@ -46,13 +47,13 @@ CON
   CURSOR_SOLID = %000
 
   CURSOR_MASK  = %111
-  
+
 OBJ
   system: "core.con.system"
 
 PUB null
 '' This is not a top level object.
-  
+
 PUB init(ID, mailbox) : cog
 
   long[mailbox][3] := 0
@@ -64,7 +65,7 @@ PUB init(ID, mailbox) : cog
   until long[mailbox][3] == $0000FFFF           ' OK (secondary/primary)
 
   long[mailbox][3] := 0                         ' release sync lock
-  
+
 DAT             org     0                       ' cog binary header
 
 header_2048     long    system#ID_2             ' magic number for a cog binary
@@ -75,7 +76,7 @@ header_2048     long    system#ID_2             ' magic number for a cog binary
                 word    @__table - @header_2048 ' translation table byte offset
 
 header_size     fit     16
-                
+
 DAT             org     0                       ' video driver
 
 driver          jmpret  $, #setup               '  -4   once
@@ -92,8 +93,8 @@ vsync           mov     ecnt, #13+2+(34-4)
                 cmp     ecnt, #32 wz
         if_ne   cmp     ecnt, #30 wz
         if_e    xor     sync, #$0101            ' in/active
-                                                                                          
-                call    #blank                                                            
+
+                call    #blank
                 djnz    ecnt, #vsync+1
 
 ' While still in sync, figure out the blink state (used to be based on cnt) and cursor.
@@ -102,7 +103,7 @@ vsync           mov     ecnt, #13+2+(34-4)
                 add     fcnt, #1                ' next frame
                 cmpsub  fcnt, #36 wz            ' N frames per phase (on/off)
         if_z    xor     rxor, rmsk              ' $FFFFFFFF vs $00000000; 70/(2*36), ~1Hz
-        
+
                 cmp     locn, #0 wz             ' check cursor availability
                 mov     crs0, #0                ' default is disabled
         if_ne   rdlong  crs0, locn              ' override
@@ -119,8 +120,8 @@ vsync           mov     ecnt, #13+2+(34-4)
                 mov     crs1, vier              ' |
 
                 mov     ecnt, #4
-        if_nc   call    #blank                  ' |                                       
-        if_nc   djnz    ecnt, #$-1              ' back porch remainder (primary only)     
+        if_nc   call    #blank                  ' |
+        if_nc   djnz    ecnt, #$-1              ' back porch remainder (primary only)
 
 ' Vertical sync chain done, do visible area.
 
@@ -154,7 +155,7 @@ vsync           mov     ecnt, #13+2+(34-4)
         if_c    djnz    ecnt, #$-1              ' let him do some blank lines
 
         if_nc   wrlong  cnt, fcnt_              ' announce vertical blank (primary)
-                
+
                 jmp     #vsync                  ' next frame
 
 
@@ -166,7 +167,7 @@ hsync           mov     vscl, wrap              ' |
 
                 mov     vcfg, vcfg_sync         ' drive sync lines                      (&&)
                 mov     outa, #0                ' stop interfering
-                
+
                 mov     cnt, cnt                ' record sync point                     (**)
                 add     cnt, #9{14}+400         ' relaxed timing
 hsync_ret
@@ -247,7 +248,7 @@ load            muxnc   flag, $                 ' preserve carry flag
                 and     frqb, #$FF              '  +8   palette index
                 mov     phsb, plte              '  -4   current palette location
                 rdword  colN, phsb      {hub}   '  +0 = read palette entry
-    
+
                 test    colN, #1 wz             '  +8   check mode
         if_nz   and     pix0, rxor              '  -4   modify foreground (-1/0)
                 cmp     drei, #%110 wz          '  +0 = zero: char in [$C0..$DF]
@@ -282,7 +283,7 @@ load            muxnc   flag, $                 ' preserve carry flag
                 and     frqb, #$FF              '  +8
                 mov     phsb, plte              '  -4
                 rdword  colN, phsb      {hub}   '  +0 =
-    
+
                 test    colN, #1 wz             '  +8
         if_nz   and     pix0, rxor              '  -4
                 shr     drei, #13               '  +0 =
@@ -313,7 +314,7 @@ load            muxnc   flag, $                 ' preserve carry flag
                 cmp     crs0, crs1 wz
         if_ne   mov     vier, crs1
         if_ne   call    #cursor
-                
+
 load_ret        jmpret  flag, #0-0 nr,wc        ' restore carry flag
 
 
@@ -329,11 +330,11 @@ cursor          test    vier, #%100 wz          ' cursor enabled?
         if_nz   jmp     cursor_ret              ' wrong scanline pair
 
                 muxc    :set, #1                ' adjust source
-        
+
                 ror     vier, #8 wc             ' carry: blink on/off
                 movd    :set, vier
         if_c    cmp     fcnt, #18 wc            ' 70/(2*18), ~2Hz
-:set    if_nc   xor     0-0, cmsk{2n}           ' cmsk: block      
+:set    if_nc   xor     0-0, cmsk{2n}           ' cmsk: block
                                                 ' pmsk: underscore
 cursor_ret      ret
 
@@ -341,9 +342,9 @@ cursor_ret      ret
 prep            mov     temp, vier              ' working copy
                 shr     temp, #16               ' |
                 and     temp, #255              ' extract y
-                sub     temp, #25               '   y - 25
+                sub     temp, #res_y/16         '   y - 25
                 shl     temp, #1+16             ' 2(y - 25)
-                
+
                 and     vier, xmsk              ' get rid of y
                 max     vier, xlim              ' limit x to park position (auto off)
                 xor     vier, #%100             ' invert on/off
@@ -354,14 +355,14 @@ prep            mov     temp, vier              ' working copy
         if_nz   add     vier, #pix
         if_z    add     vier, #col
                 rol     vier, #8                ' restore cursor descriptor
-        
+
 prep_ret        ret
 
 ' initialised data and/or presets
 
 xmsk            long    $0000FF07               ' covers mode/x
 xlim            long    80 << 8                 ' park position
-    
+
 fcnt            long    0                       ' blink frame count
 adv4            long    256*(4+0)*1             ' 4 scanlines in font
 adv8            long    256*(4+0)*2             ' 8 scanlines in font
@@ -415,7 +416,7 @@ setup           add     trap, par wc            ' carry set -> secondary
                 rdlong  temp, trap wz           ' |                                     (%%)
         if_nz   jmp     #$-1                    ' synchronized start
 
-'   primary: cnt + 0              
+'   primary: cnt + 0
 ' secondary: cnt + 2
 
                 rdlong  scrn, scrn_             ' get screen address  (4n)              (%%)
@@ -433,7 +434,7 @@ setup           add     trap, par wc            ' carry set -> secondary
 ' Perform pending setup.
 
                 add     scrn, $+1               ' scrn now points to last word
-                long    160*25 -1
+                long    res_x * res_y /72 -1
 
 ' Upset video h/w and relatives.
 
@@ -441,7 +442,7 @@ setup           add     trap, par wc            ' carry set -> secondary
                 shr     temp, #10               ' ~1ms
         if_nc   waitpne $, #0                   ' adjust primary
 
-'   primary: cnt + 0 + 6          
+'   primary: cnt + 0 + 6
 ' secondary: cnt + 2 + 4
 
                 add     temp, cnt
@@ -449,7 +450,7 @@ setup           add     trap, par wc            ' carry set -> secondary
                 movi    ctrb, #%0_11111_000     ' LOGIC always (loader support)
                 movi    ctra, #%0_00001_101     ' PLL, VCO/4
                 mov     frqa, frqx              ' 28.322MHz
-                
+
                 mov     vscl, #1                ' reload as fast as possible
                 mov     zwei, scrn              ' vgrp:[!Z]:vpin:[!Z]:scrn = 2:1:8:5:16 (%%)
                 shr     zwei, #5+16             ' |
@@ -460,7 +461,7 @@ setup           add     trap, par wc            ' carry set -> secondary
                 mov     vcfg, vcfg_sync         ' VGA, 2 colour mode
 
                 waitcnt temp, #0                ' PLL settled, frame counter flushed
-                                                  
+
                 ror     vcfg, #1                ' freeze video h/w
                 mov     vscl, line              ' transfer user value
                 rol     vcfg, #1                ' unfreeze
@@ -470,7 +471,7 @@ setup           add     trap, par wc            ' carry set -> secondary
                 mov     temp, vcfg_norm         ' |
                 or      temp, vcfg_sync         ' |
                 and     mask, temp              ' transfer vpin
-                
+
                 mov     temp, vcfg              ' |
                 shr     temp, #9                ' extract vgrp
                 shl     temp, #3                ' 0..3 >> 0..24
@@ -478,7 +479,7 @@ setup           add     trap, par wc            ' carry set -> secondary
 
                 max     dira, mask              ' drive outputs
         if_c    mov     pmsk, #0                ' no cursor mask for secondary
-        
+
 ' Setup complete, do the heavy lifting upstairs ...
 
                 jmp     %%0                     ' return
@@ -488,11 +489,11 @@ setup           add     trap, par wc            ' carry set -> secondary
 frqx            long    $16A85879               ' 28.322MHz
 mask            long    %11111111
 
-hram            long    $00007FFF               ' hub RAM mask  
+hram            long    $00007FFF               ' hub RAM mask
 trap            long    $FFFF8000 +12           ' primary/secondary trap                (##)
 
 EOD{ata}        fit
-                
+
 ' uninitialised data and/or temporaries
 
                 org     setup
@@ -524,7 +525,7 @@ pix             res     80 +1                   ' emitter pixel array |
 col             res     80 +1                   ' emitter colour data | + park position
 
 tail            fit
-                
+
 DAT                                             ' translation table
 
 __table         word    (@__names - @__table)/2
@@ -532,7 +533,7 @@ __table         word    (@__names - @__table)/2
                 word    res_x
                 word    res_y
                 word    res_m
-                
+
 __names         byte    "res_x", 0
                 byte    "res_y", 0
                 byte    "res_m", 0
@@ -540,11 +541,11 @@ __names         byte    "res_x", 0
 CON
   zero    = $1F0                                ' par (dst only)
   hv_idle = $01010101 * %10 {%hv}               ' h/v sync inactive
-  
+
   res_x   = 720                                 ' |
   res_y   = 400                                 ' |
   res_m   = 4                                   ' UI support
 
   alias   = 0
-  
+
 DAT
