@@ -363,7 +363,7 @@ sync            long    hv_idle ^ $0200
 wrap            long     62 << 12 | 122         '  62/122
 hvis            long      1 << 12 | 9           '   1/9
 line            long    180 << 12 | 720         ' 180/720
-many            long      0 << 12 | 3600        ' 256/3432
+many            long      0 << 12 | 3432        ' 256/3432
 
 scrn_           long    $00000000 -12           ' |
 font_           long    $00000004 -12           ' |
