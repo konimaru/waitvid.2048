@@ -2,8 +2,8 @@
 '' VGA display 80x25 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2019/04/28
-''       Version: 0.15.c0df.3
+'' Last modified: 2019/05/01
+''       Version: 0.15.c0df.4
 ''
 '' long[par][0]: vgrp:[!Z]:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer    (4n)
 '' long[par][1]:                addr:addr =      16:16 -> zero (accepted) palette/font     (2n/4n)
@@ -37,6 +37,7 @@
 '' 20181213: reworked for MDA like behaviour, $C0..$DF have column duplication
 '' 20181215: sync-isolation
 '' 20190428: clean-up
+'' 20190501: restored original underscore cursor
 ''
 CON
   CURSOR_ON    = %100
