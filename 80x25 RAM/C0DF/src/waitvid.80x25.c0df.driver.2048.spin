@@ -329,13 +329,23 @@ cursor          test    vier, #%100 wz          ' cursor enabled?
         if_nz   cmp     scnt, #1 wz
         if_nz   jmp     cursor_ret              ' wrong scanline pair
 
-                muxc    :set, #1                ' adjust source
+        if_nc   jmp     #:block
 
-                ror     vier, #8 wc             ' carry: blink on/off
-                movd    :set, vier
-        if_c    cmp     fcnt, #18 wc            ' 70/(2*18), ~2Hz
-:set    if_nc   xor     0-0, cmsk{2n}           ' cmsk: block
-                                                ' pmsk: underscore
+:underscore     ror     vier, #8 wc             ' carry: blink on/off
+                movd    :set_0, vier
+                sub     vier, #80
+                movd    :set_1, vier
+                
+        if_c    cmp     fcnt, #15 wc            ' 60/(2*15), ~2Hz
+:set_0  if_nc   xor     0-0, pmsk_0
+:set_1  if_nc   xor     1-1, pmsk_1
+                jmp     cursor_ret              ' done
+
+:block          ror     vier, #8 wc             ' carry: blink on/off
+                movd    :set_c, vier
+        if_c    cmp     fcnt, #15 wc            ' 60/(2*15), ~2Hz
+:set_c  if_nc   xor     0-0, cmsk
+
 cursor_ret      ret
 
 
@@ -389,9 +399,9 @@ dst2            long    2 << 9                  ' dst     +/-= 2
 d1s1            long    1 << 9  | 1             ' dst/src +/-= 1
 i2s3            long    2 << 23 | 3
 
-                long    0[$&1]
-cmsk    {2n}    long    %%3330_3330             ' xor mask for block cursor
-pmsk    {2n+1}  long    %%0000_0000_0000_3333   ' xor mask for underscore cursor (updated for secondary)
+cmsk            long    %%3330_3330             ' xor mask for block cursor
+pmsk_0          long    %%0000_0000_0000_3333   ' |
+pmsk_1          long    %%0000_3333_0000_0000   ' xor mask for underscore cursor (secondary inactive)
 
 rmsk            long    $FFFFFFFF               ' master for blink mode
 rxor            long    0                       ' pixel mask
@@ -478,7 +488,8 @@ setup           add     trap, par wc            ' carry set -> secondary
                 shl     mask, temp              ' finalise mask
 
                 max     dira, mask              ' drive outputs
-        if_c    mov     pmsk, #0                ' no cursor mask for secondary
+        if_c    mov     pmsk_0, #0              ' |
+        if_c    mov     pmsk_1, #0              ' no cursor mask for secondary
 
 ' Setup complete, do the heavy lifting upstairs ...
 
@@ -521,8 +532,8 @@ pix1            res     1
 colN            res     1
 
                 res     80                      ' |
-pix             res     80 +1                   ' emitter pixel array |
-col             res     80 +1                   ' emitter colour data | + park position
+pix             res     80                      ' emitter pixel array
+col             res     80                      ' emitter colour data
 
 tail            fit
 
