@@ -2,8 +2,8 @@
 '' VGA display 80x25 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2018/12/10
-''       Version: 0.15.nine.7
+'' Last modified: 2019/05/01
+''       Version: 0.15.nine.8
 ''
 '' long[par][0]: vgrp:[!Z]:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer    (4n)
 '' long[par][1]:                addr:addr =      16:16 -> zero (accepted) palette/font     (2n/4n)
@@ -36,6 +36,7 @@
 '' 20181127: full 9x16 support
 '' 20181129: clean palette before use
 '' 20181206: re-introduced blink attribute
+'' 20190501: restored original underscore cursor
 ''
 CON
   CURSOR_ON    = %100
