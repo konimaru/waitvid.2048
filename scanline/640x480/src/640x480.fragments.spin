@@ -2,11 +2,13 @@
 '' VGA scanline driver 640x480 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2019/05/11
+'' Last modified: 2019/05/12
 ''       Version: 0.1
 ''
 '' acknowledgements
 '' - loader code based on work done by Phil Pilgrim (PhiPi)
+''
+'' 20190512: initial version
 ''
 CON
   _clkmode = XTAL1|PLL16X
@@ -22,13 +24,47 @@ VAR
   long  scn0[res_x /4]
   long  scn1[res_x /4]
   
-PUB selftest
+PUB selftest : n
+
+  scn0[0] := %%3000'%%3000_0300_0030_3300
+  scn1[0] := %%2220_2220_2220_2220
+
+  scn0[159] := %%3000_0000_0000_0000
+  scn1[159] := %%2220_2220_2220_2220
 
   mbox{0} := @scn1{0} << 16 | @scn0{0}
   mbox[1] := video
   
   init(-1, @mbox{0})
-  
+
+  repeat
+    repeat n from 0 to res_x /4 -1
+      waitVBL
+      scn0[n] := %%0000_0000_0000_2222
+      waitVBL
+      scn0[n] := %%0000_0000_2222_2222
+      waitVBL
+      scn0[n] := %%0000_2222_2222_2222
+      waitVBL
+      scn0[n] := %%2222_2222_2222_2222
+     
+    repeat n from res_x /4 -1 to 0
+      waitVBL
+      scn0[n] := %%0000_2222_2222_2222
+      waitVBL
+      scn0[n] := %%0000_0000_2222_2222
+      waitVBL
+      scn0[n] := %%0000_0000_0000_2222
+      waitVBL
+      scn0[n] := %%0000_0000_0000_0000
+     
+PRI waitVBL
+
+  repeat
+  until mbox[1] == res_y                        ' last line has been fetched
+  repeat                  
+  until mbox[1] <> res_y                        ' vertical blank starts (res_y/0 transition)
+
 OBJ
   system: "core.con.system"
 
@@ -65,6 +101,9 @@ driver          jmpret  $, #setup               '  -4   once
 ' horizontal timing 640(640) 16(16) 96(96) 48(48)
 '   vertical timing 480(480) 10(10)  2(2)  33(33)
 
+                cmpsub  lcnt, #res_y            ' reset line counter
+        if_c    wrlong  zero, fcnt_             ' indicate vertical blank
+
 '                               +---------------- front porch
 '                               | +-------------- sync
 '                               | |    +--------- back porch
@@ -90,7 +129,7 @@ vsync           mov     ecnt, #10+2+(33-2)
                 mov     cnt, cnt                ' |
                 add     cnt, fcnt               ' record sync point
                 
-                ' fill colour buffer
+                call    #load                   ' fill colour buffer
 
 ' Vertical sync chain done, do visible area.
 
@@ -98,8 +137,7 @@ vsync           mov     ecnt, #10+2+(33-2)
                 mov     link, seqc              ' full sequence (long tail)
                 
 :loop           call    #emit                   ' display scanline
-
-                ' fill colour buffer
+                call    #load                   ' fill colour buffer
                 
                 djnz    ecnt, #:loop            ' for all but last row
 
@@ -115,6 +153,25 @@ blank           mov     vscl, line              ' 256/640
                 mov     vscl, wrap              ' |
                 waitvid sync, wrap_value        ' horizontal sync pulse
 blank_ret       ret
+
+
+load            muxnc   flag, $                 ' preserve carry flag
+
+                movd    :ld0, #col +160 -1
+                movd    :ld1, #col +160 -2
+                mov     eins, scan              ' hub source
+                
+:ld0            rdlong  0-0, eins               ' |
+                sub     $-1, dst2               ' |
+                sub     eins, i2s7 wc           ' |
+:ld1            rdlong  0-0, eins               ' |
+                sub     $-1, dst2               ' |
+        if_nc   djnz    eins, #:ld0             ' sub #7/djnz (Thanks Phil!)
+
+                wrlong  lcnt, fcnt_             ' buffer has been fetched
+                add     lcnt, #2                ' advance
+
+load_ret        jmpret  flag, #0-0 nr,wc        ' restore carry flag
 
 
 emit            waitcnt cnt, #0                 ' re-sync after back porch
@@ -304,7 +361,9 @@ emit_ret        ret
 ' initialised data and/or presets
                 
 fcnt            long    9{14} +(3000 -14)       ' ~960 pixel clocks
+lcnt            long    1                       ' line counter
 
+flag            long    0                       ' loader flag storage
 idle            long    hv_idle
 sync            long    (hv_idle ^ $0200) & $FF00FFFF
 
@@ -318,6 +377,9 @@ wrap_value      long    %%2222_2200_0111_1110
 
 scan_           long    $00000000 -4            ' |
 fcnt_           long    $00000004 -4            ' mailbox addresses (local copy)
+
+dst2            long    2 << 9                  ' dst     +/-= 2
+i2s7            long    2 << 23 | 7
 
 ' Stuff below is re-purposed for temporary storage.
 
@@ -336,8 +398,22 @@ setup           add     trap, par wc            ' carry set -> secondary
 '   primary: cnt + 0
 ' secondary: cnt + 2
 
+                rdlong  scan, scan_             ' double buffer
+                wrlong  zero, scan_             ' acknowledge buffer
+                
                 rdlong  eins, fcnt_             ' vcfg setup
                 wrlong  zero, fcnt_             ' acknowledge setup
+
+' Perform pending setup.
+
+                addx    lcnt, #0                ' even/odd
+                
+        if_c    shr     scan, #16               ' secondary buffer
+                and     scan, hram              ' confine to hub RAM
+
+                movi    scan, #(res_x /4) -2    ' magic marker
+                add     scan, $+1               ' last byte in buffer
+                long    res_x -1
 
 ' Upset video h/w and relatives.
 
@@ -350,7 +426,6 @@ setup           add     trap, par wc            ' carry set -> secondary
 
                 add     temp, cnt
 
-                movi    ctrb, #%0_11111_000     ' LOGIC always (loader support)
                 movi    ctra, #%0_00001_101     ' PLL, VCO/4
                 mov     frqa, frqx              ' 25.175MHz
 
@@ -396,6 +471,7 @@ col             res     160                     ' colour buffer
 
 ecnt            res     1                       ' element count
 link            res     1                       ' tail selector
+scan            res     1                       ' scanline hub location
 
 temp            res     1
 eins            res     1
