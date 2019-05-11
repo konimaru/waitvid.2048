@@ -14,7 +14,7 @@ CON
   
 CON
   vgrp     = 2                                          ' video pin group
-  vpin     = %%333_0                                    ' video pin mask
+  vpin     = %%333_3                                    ' video pin mask
   video    = (vgrp << 9 | vpin) << 21
 
 VAR
