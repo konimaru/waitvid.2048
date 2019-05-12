@@ -61,7 +61,7 @@ driver          jmpret  $, #setup               '  -4   once
 '   vertical timing 480(480) 10(10)  2(2)  33(33)
 
                 cmpsub  lcnt, #res_y            ' reset line counter
-        if_c    wrlong  zero, fcnt_             ' indicate vertical blank
+        if_c    wrword  zero, fcnt_             ' indicate vertical blank
 
 '                               +---------------- front porch
 '                               | +-------------- sync
@@ -127,7 +127,7 @@ load            muxnc   flag, $                 ' preserve carry flag
                 sub     $-1, dst2               ' |
         if_nc   djnz    eins, #:ld0             ' sub #7/djnz (Thanks Phil!)
 
-                wrlong  lcnt, fcnt_             ' buffer has been fetched
+                wrword  lcnt, fcnt_             ' buffer has been fetched
                 add     lcnt, #2                ' advance
 
 load_ret        jmpret  flag, #0-0 nr,wc        ' restore carry flag
