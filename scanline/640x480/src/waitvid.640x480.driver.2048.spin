@@ -3,7 +3,21 @@
 ''
 ''        Author: Marko Lukat
 '' Last modified: 2019/05/12
-''       Version: 0.1
+''       Version: 0.2
+''
+'' word[par][0]: [!Z]:addr:[!Z] = 1:13:2 -> zero (accepted) scanline buffer (primary)   (4n)
+'' word[par][1]: [!Z]:addr:[!Z] = 1:13:2 -> zero (accepted) scanline buffer (secondary) (4n)
+'' word[par][2]: frame indicator/sync lock
+'' word[par][3]: vgrp:[!Z]:vpin:[!Z] = 2:1:8:5 -> zero (accepted) vcfg
+''
+'' double buffer mode
+''
+'' - configure two line buffers
+'' - FI:res_y/0 indicates vertical blank
+'' - fill primary/secondary buffer
+'' - last invisible line will fetch primary buffer
+'' - FI:2n/2n+1, primary has been fetched, buffer can be reused
+'' - FI:2n-1/2n, secondary has been fetched, buffer can be reused
 ''
 '' acknowledgements
 '' - loader code based on work done by Phil Pilgrim (PhiPi)
