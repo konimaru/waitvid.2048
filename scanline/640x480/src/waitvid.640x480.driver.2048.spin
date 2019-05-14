@@ -14,8 +14,8 @@
 ''
 '' - configure two line buffers
 '' - FI:res_y/0 indicates vertical blank
-'' - fill primary/secondary buffer
-'' - last invisible line will fetch primary buffer
+'' - fill primary+secondary buffer
+'' - primary/secondary buffer fetch will start 1.2/0.2 lines before visible display
 '' - FI:2n/2n+1, primary has been fetched, buffer can be reused
 '' - FI:2n-1/2n, secondary has been fetched, buffer can be reused
 ''
