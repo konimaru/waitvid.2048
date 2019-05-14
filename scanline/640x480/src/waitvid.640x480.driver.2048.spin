@@ -2,8 +2,8 @@
 '' VGA scanline driver 640x480 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2019/05/12
-''       Version: 0.2
+'' Last modified: 2019/05/14
+''       Version: 0.3
 ''
 '' word[par][0]: [!Z]:addr:[!Z] = 1:13:2 -> zero (accepted) scanline buffer (primary)   (4n)
 '' word[par][1]: [!Z]:addr:[!Z] = 1:13:2 -> zero (accepted) scanline buffer (secondary) (4n)
