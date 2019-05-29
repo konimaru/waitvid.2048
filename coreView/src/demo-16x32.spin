@@ -43,11 +43,13 @@ PUB selftest : n | str, t, cmd
     view.cmd1(cmd ^= 1)                                 ' normal/inverted
     
 DAT                                                     ' display initialisation sequence
-        byte    6
+        byte    10
 iseq    byte    SSD1306#SET_MEMORY_MODE, %111111_00     ' horizontal mode
         byte    SSD1306#SET_SEGMENT_REMAP|1             ' |
         byte    SSD1306#SET_COM_SCAN_DEC                ' rotate 180 deg
         byte    SSD1306#SET_CHARGE_PUMP, %11_010100     ' no external Vcc
+        byte    SSD1306#SET_PRECHARGE_PERIOD, $F1       ' internal DC/DC
+        byte    SSD1306#SET_VCOMH_DESELECT, $40         ' adjust output
 
 PRI init
 
