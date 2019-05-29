@@ -1,7 +1,7 @@
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2016/01/19
-''       Version: 0.2
+'' Last modified: 2019/05/29
+''       Version: 0.3
 ''
 CON
   _clkmode = XTAL1|PLL16X
