@@ -2,11 +2,11 @@
 '' VGA driver 320x256 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2019/02/13
-''       Version: 0.2.yx.1
+'' Last modified: 2019/06/11
+''       Version: 0.2.yx.2
 ''
 '' long[par][0]: vgrp:[!Z]:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer
-'' long[par][1]:                [!Z]:addr =      16:16 -> zero (accepted) colour buffer
+'' long[par][1]: sgrp:[!Z]:----:[!Z]:addr =      16:16 -> zero (accepted) colour buffer
 '' long[par][2]: unused
 '' long[par][3]: frame indicator/sync lock
 ''
@@ -15,6 +15,7 @@
 ''
 '' 20190130: initial release
 '' 20190213: yx variant
+'' 20190611: 6bit/8bit colour
 ''
 OBJ
   system: "core.con.system"
@@ -140,7 +141,7 @@ hsync           mov     vscl, wrap              '   6/306
                 waitvid sync, wrap_value
 
                 mov     vcfg, vcfg_sync         ' drive sync lines                      (&&)
-                mov     outa, #0                ' stop interfering
+'               mov     outa, #0                ' stop interfering                      (=0)
                 
                 mov     cnt, cnt                ' record sync point                     (**)
                 add     cnt, #9{14}+200         ' relaxed timing
@@ -182,7 +183,7 @@ load_ret        jmpret  flag, #0-0 nr,wc        ' restore carry flag
 
 emit            waitcnt cnt, #0                 ' re-sync after back porch              (**)
 
-                mov     outa, idle              ' take over sync lines
+'               mov     outa, idle              ' take over sync lines                  (=0)
                 mov     vcfg, vcfg_norm         ' disconnect from video h/w             (&&)
 
                 movs    :two, #pix+0            ' |
@@ -216,8 +217,8 @@ scrn_           long    $00000000 -12           ' |
 attr_           long    $00000004 -12           ' |
 fcnt_           long    $0000000C -12           ' mailbox addresses (local copy)        (##)
 
-vcfg_norm       long    %0_01_0_00_000 << 23
-vcfg_sync       long    %0_01_0_00_000 << 23 | %00000011
+vcfg_norm       long    %0_01_0_00_000 << 23 | vgrp << 9 | vpin
+vcfg_sync       long    %0_01_0_00_000 << 23 | sgrp << 9 | %%000_3
 
 dst1            long    1 << 9                  ' dst     +/-= 1
 d1s1            long    1 << 9  | 1             ' dst/src +/-= 1
@@ -264,12 +265,31 @@ setup           add     trap, par wc            ' carry set -> secondary
                 movs    frqa, #0                ' insert res_x*3 into phsa
                 
                 mov     vscl, #1                ' reload as fast as possible
+
                 mov     zwei, scrn              ' vgrp:[!Z]:vpin:[!Z]:scrn = 2:1:8:5:16 (%%)
-                shr     zwei, #5+16             ' |
-                andn    zwei, #%%000_3          ' |
-                or      vcfg_norm, zwei         ' | group + %%RGB_0
+                shr     zwei, #5+16 wz          ' |
+        if_z    mov     zwei, vcfg_norm         ' |
+        if_nz   movs    vcfg_norm, zwei         ' | replace pins
                 shr     zwei, #9                ' |
-                movd    vcfg_sync, zwei         ' | group + %%000_3
+        if_nz   movd    vcfg_norm, zwei         ' | replace group
+
+                mov     mask, vcfg_norm         ' |
+                and     mask, #%%333_3          ' transfer vpin
+                shl     zwei, #3                ' 0..3 >> 0..24
+                shl     mask, zwei              ' RGB mask
+
+                mov     zwei, attr              ' sgrp:[!Z]:----:[!Z]:scrn = 2:1:8:5:16
+                shr     zwei, #5+16 wz          ' |
+        if_z    mov     zwei, vcfg_sync         ' |
+'{fix}  if_nz   movs    vcfg_sync, zwei         ' | %%000_3
+                shr     zwei, #9                ' |
+        if_nz   movd    vcfg_sync, zwei         ' | replace group
+
+                mov     eins, vcfg_sync         ' |                                     (%%)
+                and     eins, #%%000_3          ' transfer vpin
+                shl     zwei, #3                ' 0..3 >> 0..24
+                shl     eins, zwei              ' H/V mask
+
                 mov     vcfg, vcfg_sync         ' VGA, 2 colour mode
 
                 waitcnt temp, #0                ' PLL settled, frame counter flushed
@@ -280,15 +300,7 @@ setup           add     trap, par wc            ' carry set -> secondary
                 waitpne $, #0                   ' get some distance
                 waitvid zero, #0                ' latch user value
 
-                mov     temp, vcfg_norm         ' |
-                or      temp, vcfg_sync         ' |
-                and     mask, temp              ' transfer vpin
-                
-                mov     temp, vcfg              ' |
-                shr     temp, #9                ' extract vgrp
-                shl     temp, #3                ' 0..3 >> 0..24
-                shl     mask, temp              ' finalise mask
-
+                or      mask, eins              ' finalise mask
                 max     dira, mask              ' drive outputs
                 mov     $000, pal0              ' restore colour entry 0
         
@@ -298,7 +310,7 @@ setup           add     trap, par wc            ' carry set -> secondary
 
 ' Local data, used only once.
 
-mask            long    %11111111
+mask            long    0
 pal0            long    hv_idle                 ' first palette entry
 
 hram            long    $00007FFF               ' hub RAM mask  
@@ -317,7 +329,7 @@ scnt            res     1                       ' scanline count
 
 temp            res     1                       '                       < setup + 7     (%%)
 
-eins            res     1
+eins            res     1                       '                       < setup +38     (%%)
 zwei            res     1                       '                       < setup +23     (%%)
 drei            res     1
 
@@ -341,6 +353,10 @@ __names         byte    "res_x", 0
 CON
   zero    = $1F0                                ' par (dst only)
   hv_idle = $01010101 * %00 {%hv}               ' h/v sync inactive
+
+  vpin    = %%333_0                             ' pin group mask
+  vgrp    = 2                                   ' pin group
+  sgrp    = 2                                   ' pin group sync
   
   res_x   = 320                                 ' |
   res_y   = 256                                 ' |
