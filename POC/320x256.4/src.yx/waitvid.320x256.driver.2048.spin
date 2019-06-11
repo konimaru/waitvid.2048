@@ -3,10 +3,10 @@
 ''
 ''        Author: Marko Lukat
 '' Last modified: 2019/06/11
-''       Version: 0.2.yx.2
+''       Version: 0.2.yx.3
 ''
 '' long[par][0]: vgrp:[!Z]:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer
-'' long[par][1]: sgrp:[!Z]:----:[!Z]:addr =      16:16 -> zero (accepted) colour buffer
+'' long[par][1]: sgrp:[!Z]:----:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) colour buffer
 '' long[par][2]: unused
 '' long[par][3]: frame indicator/sync lock
 ''
