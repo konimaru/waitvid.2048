@@ -2,8 +2,8 @@
 '' VGA driver 320x256 (dual cog) - demo
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2019/01/30
-''       Version: 0.2
+'' Last modified: 2019/06/17
+''       Version: 0.3
 ''
 CON
   _clkmode = XTAL1|PLL16X
@@ -19,12 +19,6 @@ CON
   mbyte    = $7F | flash & $80
   mlong    = mbyte * $01010101
 
-CON
-  vgrp     = 2                                          ' video pin group
-  vpin     = %%333_0                                    ' video pin mask
-
-  video    = (vgrp << 9 | vpin) << 21
-
 OBJ
   driver: "waitvid.320x256.driver.2048"
     font: "generic8x8-1font"
@@ -38,7 +32,7 @@ VAR
   
 PUB selftest : n | x, y
 
-  link{0} := video | @scrn{0}
+  link{0} := @scrn{0}
   link[1] := @attr{0}
   driver.init(-1, @link{0})                             ' start driver
 
