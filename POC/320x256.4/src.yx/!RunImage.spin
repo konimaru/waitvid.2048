@@ -2,8 +2,10 @@
 '' VGA driver 320x256 (dual cog) - demo
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2019/06/17
-''       Version: 0.2.yx.2
+'' Last modified: 2019/06/19
+''       Version: 0.2.yx.3
+''
+'' 20190619: added test for 8+2 in 6+2 environments
 ''
 CON
   _clkmode = XTAL1|PLL16X
@@ -29,12 +31,17 @@ VAR
 
   long  link[driver#res_m]                              ' mailbox
   long  base
+
+  long  sH[32], sV[32]
   
 PUB selftest : n | x, y
 
-  link{0} := @scrn{0}
-  link[1] := @attr{0}
+  link{0} := (2 << 9 | %%333_0) << 21 | @scrn{0}
+  link[1] := (2 << 9 | %%000_3) << 21 | @attr{0}
   driver.init(-1, @link{0})                             ' start driver
+
+' cognew(plink(16, 2, 0), @sV{0})                       ' |
+' cognew(plink(17, 3, 1), @sH{0})                       ' H/V bit links
 
   base := font.addr
   frqa := frqb := cnt
@@ -42,6 +49,14 @@ PUB selftest : n | x, y
   repeat                                                  
     fill_1
 
+PRI plink(a,{<<}b,{<<}c)
+
+  dira := |< a | |< b
+  ctra := %0_01001_000 << 23 | a << 9 | b               ' outa[a] := !ina[b]
+  ctrb := %0_01001_000 << 23 | b << 9 | c               ' outa[b] := !ina[c]
+
+  waitpne(0, 0, 0)
+  
 PRI fill_1 : n | x, y
 
   repeat y from 0 to 31         
