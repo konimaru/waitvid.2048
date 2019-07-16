@@ -53,8 +53,8 @@ PUB selftest : n
 
   driver.init(-1, @link{0})                             ' start driver
 
-  setCursor(CURSOR_ON|CURSOR_ULINE|CURSOR_FLASH)
-
+' setCursor(CURSOR_ON|CURSOR_ULINE|CURSOR_FLASH)
+ 
   repeat bcnt                                           ' fill screen
     printChar(n, n++)
 
