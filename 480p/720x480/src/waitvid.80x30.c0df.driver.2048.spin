@@ -2,8 +2,8 @@
 '' VGA display 80x30 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2019/05/01
-''       Version: 0.15.c0df.2
+'' Last modified: 2019/07/16
+''       Version: 0.15.c0df.3
 ''
 '' long[par][0]: vgrp:[!Z]:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer    (4n)
 '' long[par][1]:                addr:addr =      16:16 -> zero (accepted) palette/font     (2n/4n)
@@ -85,7 +85,7 @@ vsync           mov     ecnt, #9+6+(30-4)
                 djnz    ecnt, #vsync+1
 
 ' While still in sync, figure out the blink state (used to be based on cnt) and cursor.
-' hsync offers 31 hub windows.
+' hsync offers 25 hub windows.
 
                 add     fcnt, #1                ' next frame
                 cmpsub  fcnt, #30 wz            ' N frames per phase (on/off)
