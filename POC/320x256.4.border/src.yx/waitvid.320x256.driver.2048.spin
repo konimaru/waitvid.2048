@@ -2,15 +2,16 @@
 '' VGA driver 320x256 (dual cog) - video driver and pixel generator
 ''
 ''        Author: Marko Lukat
-'' Last modified: 2020/05/07
-''       Version: 0.1
+'' Last modified: 2020/05/08
+''       Version: 0.2
 ''
 '' long[par][0]: vgrp:[!Z]:vpin:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) screen buffer
 '' long[par][1]: sgrp:[!Z]:----:[!Z]:addr = 2:1:8:5:16 -> zero (accepted) colour buffer
-'' long[par][2]: unused
+'' long[par][2]: border colour in LSB
 '' long[par][3]: frame indicator/sync lock
 ''
 '' 20200507: initial release
+'' 20200508: border colour can now be changed
 ''
 OBJ
   system: "core.con.system"
@@ -67,9 +68,9 @@ driver          jmpret  $, #setup               '  -4   once
 ' horizontal timing 80+640+80(800) 5(40) 16(128) 11(88)
 '   vertical timing 44+512+44(600) 1(1)   4(4)   23(23)
 
-vsync           mov     ecnt, #44 +1
-                call    #blank                  ' front porch
-                djnz    ecnt, #$-1
+'               mov     ecnt, #1
+vsync           call    #blank                  ' front porch
+'               djnz    ecnt, #$-1
 
                 add     fcnt, #1                ' next frame
                 cmpsub  fcnt, #30 wz            ' N frames per phase (on/off)
@@ -84,14 +85,18 @@ vsync           mov     ecnt, #44 +1
 
                 xor     sync, #$0101            ' inactive
 
-                mov     ecnt, #44 +23 -2
+                mov     ecnt, #23
                 call    #blank                  ' back porch
                 djnz    ecnt, #$-1
 
-        if_nc   call    #blank                  ' |
-        if_nc   call    #blank                  ' back porch remainder (primary only)
-
 ' Vertical sync chain done, do visible area.
+
+                mov     ecnt, #44 -2
+                call    #empty                  ' top border
+                djnz    ecnt, #$-1
+
+        if_nc   call    #empty                  ' |
+        if_nc   call    #empty                  ' top border remainder (primary only)
 
                 mov     scnt, #res_y /2         ' 256 dual scanlines (split between primary and secondary)
 
@@ -117,6 +122,10 @@ vsync           mov     ecnt, #44 +1
         if_c    call    #blank                  ' secondary finishes early so
         if_c    call    #blank                  ' let him do some blank lines
 
+                mov     ecnt, #44
+                call    #empty                  ' bottom border
+                djnz    ecnt, #$-1
+
         if_nc   wrlong  cnt, fcnt_              ' announce vertical blank (primary)
 
                 jmp     #vsync                  ' next frame
@@ -133,6 +142,8 @@ hsync           mov     vscl, wrap              '   8/256
 
                 mov     cnt, cnt                ' record sync point                     (**)
                 add     cnt, #9{14}+400         ' relaxed timing
+
+                rdbyte  bcol, bcol_             ' update border colour
 hsync_ret
 blank_ret       ret
 
@@ -169,13 +180,25 @@ load            muxnc   flag, $                 ' preserve carry flag
 load_ret        jmpret  flag, #0-0 nr,wc        ' restore carry flag
 
 
+empty           waitcnt cnt, #0                 ' re-sync after back porch              (**)
+
+'               mov     outa, idle              ' take over sync lines                  (=0)
+                mov     vcfg, vcfg_norm         ' disconnect from video h/w             (&&)
+
+                mov     vscl, phsa              ' 256/800
+                waitvid bcol, #%0000            ' latch border line
+
+                call    #hsync
+empty_ret       ret
+
+
 emit            waitcnt cnt, #0                 ' re-sync after back porch              (**)
 
 '               mov     outa, idle              ' take over sync lines                  (=0)
                 mov     vcfg, vcfg_norm         ' disconnect from video h/w             (&&)
 
                 mov     vscl, #80               ' 256/80
-                waitvid zero, #0                ' left border
+                waitvid bcol, #0                ' left border
 
                 movs    :two, #pix+0            ' |
                 movd    :two, #col+0            ' restore initial settings
@@ -188,7 +211,7 @@ emit            waitcnt cnt, #0                 ' re-sync after back porch      
                 djnz    ecnt, #:loop            ' for all columns
 
                 mov     vscl, #80               ' 256/80
-                waitvid zero, #0                ' right border
+                waitvid bcol, #0                ' right border
 
                 call    #hsync                  ' timing requirement (now relaxed)
 emit_ret        ret
@@ -210,6 +233,7 @@ fclk            long    1056*2                  ' frame clocks per scan
 
 scrn_           long    $00000000 -12           ' |
 attr_           long    $00000004 -12           ' |
+bcol_           long    $00000008 -12           ' |
 fcnt_           long    $0000000C -12           ' mailbox addresses (local copy)        (##)
 
 vcfg_norm       long    %0_01_0_00_000 << 23 | vgrp << 9 | vpin
@@ -225,6 +249,7 @@ setup           add     trap, par wc            ' carry set -> secondary
 
                 add     scrn_, trap             ' @long[par][0]
                 add     attr_, trap             ' @long[par][1]
+                add     bcol_, trap             ' @long[par][2]
                 add     fcnt_, trap             ' @long[par][3]
 
                 addx    trap, #%00              ' add secondary offset
@@ -316,15 +341,16 @@ EOD{ata}        fit
 
                 org     setup
 
-scrn            res     1                       ' screen buffer         < setup + 9     (%%)
-attr            res     1                       ' palette location      < setup +11     (%%)
+scrn            res     1                       ' screen buffer         < setup +10     (%%)
+attr            res     1                       ' palette location      < setup +12     (%%)
 ecnt            res     1                       ' element count
 scnt            res     1                       ' scanline count
+bcol            res     1                       ' border colour
 
-temp            res     1                       '                       < setup + 7     (%%)
+temp            res     1                       '                       < setup + 8     (%%)
 
-eins            res     1                       '                       < setup +38     (%%)
-zwei            res     1                       '                       < setup +23     (%%)
+eins            res     1                       '                       < setup +39     (%%)
+zwei            res     1                       '                       < setup +24     (%%)
 drei            res     1
 
 pix             res     40
